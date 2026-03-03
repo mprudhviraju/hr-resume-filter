@@ -34,7 +34,7 @@ function AnalyzePage() {
   const [elapsedMs, setElapsedMs] = useState<number>(0);
   const [jobHistory, setJobHistory] = useState<JobHistoryItem[]>(() => loadJobHistory());
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
-  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [, setCurrentJobId] = useState<string | null>(null);
   const [jobStartedAt, setJobStartedAt] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [jobHistoryExpanded, setJobHistoryExpanded] = useState<boolean>(false);

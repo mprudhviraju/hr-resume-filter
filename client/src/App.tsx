@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AnalyzePage from './pages/AnalyzePage';
 import Settings from './components/Settings';
-import { hasApiKey } from './utils/apiKeyStorage';
 
 function App() {
   return (
