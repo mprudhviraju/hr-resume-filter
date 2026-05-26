@@ -20,6 +20,10 @@ Parameters:
     Type: String
     Default: ''
     Description: Optional OpenAI model id (default gpt-4o when empty)
+  GoogleClientId:
+    Type: String
+    Default: ''
+    Description: Google OAuth 2.0 Client ID for authentication
 
 Globals:
   Function:
@@ -33,6 +37,8 @@ Globals:
         ALLOWED_ORIGINS: !Ref AllowedOrigins
         OPENAI_API_KEY: !Ref OpenAIApiKey
         OPENAI_MODEL: !Ref OpenAIModel
+        USERS_TABLE_NAME: !Ref UsersTable
+        GOOGLE_CLIENT_ID: !Ref GoogleClientId
 
 Resources:
   JobsTable:
@@ -50,6 +56,18 @@ Resources:
         AttributeName: expiresAt
         Enabled: true
 
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-users'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
@@ -65,6 +83,7 @@ Resources:
         AllowHeaders:
           - Content-Type
           - X-OpenAI-API-Key
+          - Authorization
         MaxAge: 600
 
   ApiFunction:
@@ -78,6 +97,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         Health:
           Type: HttpApi
@@ -109,6 +130,30 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /api/settings/api-key
             Method: DELETE
+        AuthVerify:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/auth/verify
+            Method: POST
+        ListUsers:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/users
+            Method: GET
+        AddUser:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/users
+            Method: POST
+        RemoveUser:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/users/{email}
+            Method: DELETE
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -129,6 +174,8 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       FunctionUrlConfig:
         AuthType: NONE
         InvokeMode: RESPONSE_STREAM
@@ -156,6 +203,9 @@ Outputs:
   JobsTableName:
     Description: DynamoDB jobs table
     Value: !Ref JobsTable
+  UsersTableName:
+    Description: DynamoDB allowed users table
+    Value: !Ref UsersTable
   ApiFunctionArn:
     Description: Create-job Lambda ARN
     Value: !GetAtt ApiFunction.Arn

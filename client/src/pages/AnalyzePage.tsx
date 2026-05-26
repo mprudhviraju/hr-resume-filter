@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, ChevronDown, ChevronUp, Clock, History, Settings, FileSearch, Loader2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Clock, History, Settings, FileSearch, Loader2, LogOut, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import FolderSelector from '../components/FolderSelector';
 import CriteriaInput from '../components/CriteriaInput';
@@ -7,6 +7,7 @@ import ResultsDisplay from '../components/ResultsDisplay';
 import { AnalysisResults } from '../types';
 import { getStoredApiKey, loadApiKeyFromServer } from '../utils/apiKeyStorage';
 import { JobHistoryItem, loadJobHistory, saveJobHistory } from '../utils/jobHistoryStorage';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ProgressState {
   total: number;
@@ -37,6 +38,7 @@ function resolveApiUrl(pathWithLeadingSlash: string): string {
 }
 
 function AnalyzePage() {
+  const { user, isAdmin, logout, authHeaders } = useAuth();
   const [folderPath, setFolderPath] = useState<string>('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [criteria, setCriteria] = useState<string>('');
@@ -136,6 +138,7 @@ function AnalyzePage() {
       // Step 1: create job
       const response = await fetch(apiUrl, {
         method: 'POST',
+        headers: authHeaders(),
         body: formData,
       });
 
@@ -360,13 +363,37 @@ function AnalyzePage() {
               <div className="hidden sm:block h-6 w-px bg-gray-200" />
               <span className="hidden sm:inline text-sm font-semibold text-gray-700">HR Resume Filter</span>
             </div>
-            <Link
-              to="/settings"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              <Settings size={16} />
-              Settings
-            </Link>
+            <div className="flex items-center gap-2">
+              {user && (
+                <span className="hidden sm:inline text-xs text-gray-500 mr-1">
+                  {user.name || user.email}
+                </span>
+              )}
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  <Users size={16} />
+                  <span className="hidden sm:inline">Users</span>
+                </Link>
+              )}
+              <Link
+                to="/settings"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <Settings size={16} />
+                <span className="hidden sm:inline">Settings</span>
+              </Link>
+              <button
+                onClick={logout}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-red-600 bg-gray-100 hover:bg-red-50 rounded-lg transition-colors"
+                title="Sign out"
+              >
+                <LogOut size={16} />
+                <span className="hidden sm:inline">Sign Out</span>
+              </button>
+            </div>
           </div>
         </div>
       </nav>

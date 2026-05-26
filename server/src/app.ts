@@ -9,7 +9,9 @@ import { parseResumeFolder, parseUploadedFiles } from './services/resumeParser';
 import { pipeAnalysisStreamToWritable } from './services/analysisStream';
 import { getJobStore, jobExpiresAt } from './store/jobStore';
 import { getSettingsStore } from './store/settingsStore';
+import { getUserStore } from './store/userStore';
 import { isOriginAllowed, parseAllowedOrigins } from './utils/cors';
+import { requireAuth, requireAdmin, type AuthenticatedRequest } from './middleware/auth';
 
 const isLambda = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
 
@@ -44,7 +46,7 @@ export function createApp(): express.Application {
             }
           },
       credentials: true,
-      allowedHeaders: ['Content-Type', 'X-OpenAI-API-Key'],
+      allowedHeaders: ['Content-Type', 'X-OpenAI-API-Key', 'Authorization'],
       exposedHeaders: ['X-OpenAI-API-Key'],
     }),
   );
@@ -55,9 +57,9 @@ export function createApp(): express.Application {
     res.json({ status: 'ok', message: 'HR Resume Filter API is running' });
   });
 
-  // --- Settings: server-stored OpenAI API key ---
+  // --- Settings: server-stored OpenAI API key (protected) ---
 
-  app.get('/api/settings/api-key', async (_req, res) => {
+  app.get('/api/settings/api-key', requireAuth, async (_req, res) => {
     try {
       const key = await getSettingsStore().getApiKey();
       if (!key) {
@@ -72,7 +74,7 @@ export function createApp(): express.Application {
     }
   });
 
-  app.put('/api/settings/api-key', async (req, res) => {
+  app.put('/api/settings/api-key', requireAuth, async (req, res) => {
     try {
       const { apiKey } = req.body;
       if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim()) {
@@ -86,7 +88,7 @@ export function createApp(): express.Application {
     }
   });
 
-  app.delete('/api/settings/api-key', async (_req, res) => {
+  app.delete('/api/settings/api-key', requireAuth, async (_req, res) => {
     try {
       await getSettingsStore().deleteApiKey();
       res.json({ success: true });
@@ -100,6 +102,7 @@ export function createApp(): express.Application {
 
   app.post(
     '/api/analyze',
+    requireAuth,
     (req, res, next) => {
       uploadResumes(req, res, (err) => {
         if (err) {
@@ -191,6 +194,55 @@ export function createApp(): express.Application {
       await jobStore.delete(jobId);
       res.end();
     });
+  });
+
+  // --- Auth: verify Google token + check allowed users ---
+
+  app.post('/api/auth/verify', requireAuth, (req: AuthenticatedRequest, res) => {
+    res.json({ user: req.user });
+  });
+
+  // --- User management (admin only) ---
+
+  app.get('/api/users', requireAuth, requireAdmin, async (_req, res) => {
+    try {
+      const users = await getUserStore().list();
+      res.json({ users });
+    } catch (error) {
+      console.error('Error listing users:', error);
+      res.status(500).json({ error: 'Failed to list users' });
+    }
+  });
+
+  app.post('/api/users', requireAuth, requireAdmin, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { email, name, role } = req.body;
+      if (!email || typeof email !== 'string' || !email.includes('@')) {
+        return res.status(400).json({ error: 'Valid email is required' });
+      }
+      await getUserStore().add({
+        email: email.toLowerCase().trim(),
+        name: name?.trim() || undefined,
+        role: role === 'admin' ? 'admin' : 'user',
+        addedAt: Date.now(),
+        addedBy: req.user?.email,
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error adding user:', error);
+      res.status(500).json({ error: 'Failed to add user' });
+    }
+  });
+
+  app.delete('/api/users/:email', requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { email } = req.params;
+      await getUserStore().remove(decodeURIComponent(email));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error removing user:', error);
+      res.status(500).json({ error: 'Failed to remove user' });
+    }
   });
 
   app.use(

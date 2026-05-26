@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_STREAM_BASE_URL?: string;
   /** Set to "true" to show server-side folder path input (local backend only). */
   readonly VITE_ENABLE_FOLDER_PATH?: string;
+  /** Google OAuth 2.0 Client ID for Sign-In. */
+  readonly VITE_GOOGLE_CLIENT_ID?: string;
 }
 
 interface ImportMeta {
