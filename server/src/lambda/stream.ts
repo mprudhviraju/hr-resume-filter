@@ -5,7 +5,6 @@ import type {
 import { Writable } from 'stream';
 import { runJobAnalysisStream, createSseWriter } from '../services/analysisStream';
 import { getJobStore } from '../store/jobStore';
-import { corsHeaders, isOriginAllowed } from '../utils/cors';
 
 declare const awslambda: {
   streamifyResponse: (
@@ -35,42 +34,25 @@ function getJobIdFromEvent(event: APIGatewayProxyEventV2): string | undefined {
   );
 }
 
+const SSE_HEADERS: Record<string, string> = {
+  'Content-Type': 'text/event-stream',
+  'Cache-Control': 'no-cache',
+  Connection: 'keep-alive',
+};
+
+const JSON_HEADERS: Record<string, string> = {
+  'Content-Type': 'application/json',
+};
+
 async function streamHandler(
   event: APIGatewayProxyEventV2,
   responseStream: NodeJS.WritableStream,
 ): Promise<void> {
-  const origin = event.headers?.origin ?? event.headers?.Origin;
-  const headers = {
-    ...corsHeaders(origin),
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-  };
-
-  if (event.requestContext?.http?.method === 'OPTIONS') {
-    const httpStream = awslambda.HttpResponseStream.from(responseStream, {
-      statusCode: 204,
-      headers,
-    });
-    httpStream.end();
-    return;
-  }
-
-  if (origin && !isOriginAllowed(origin)) {
-    const httpStream = awslambda.HttpResponseStream.from(responseStream, {
-      statusCode: 403,
-      headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
-    });
-    httpStream.write(JSON.stringify({ error: 'Origin not allowed' }));
-    httpStream.end();
-    return;
-  }
-
   const jobId = getJobIdFromEvent(event);
   if (!jobId) {
     const httpStream = awslambda.HttpResponseStream.from(responseStream, {
       statusCode: 400,
-      headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
+      headers: JSON_HEADERS,
     });
     httpStream.write(JSON.stringify({ error: 'Job ID is required' }));
     httpStream.end();
@@ -82,7 +64,7 @@ async function streamHandler(
   if (!job) {
     const httpStream = awslambda.HttpResponseStream.from(responseStream, {
       statusCode: 404,
-      headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
+      headers: JSON_HEADERS,
     });
     httpStream.write(JSON.stringify({ error: 'Job not found' }));
     httpStream.end();
@@ -91,7 +73,7 @@ async function streamHandler(
 
   const httpStream = awslambda.HttpResponseStream.from(responseStream, {
     statusCode: 200,
-    headers,
+    headers: SSE_HEADERS,
   });
 
   const send = createSseWriter((chunk) => {
