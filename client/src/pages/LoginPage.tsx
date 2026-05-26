@@ -11,7 +11,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-subtle)' }}>
       {/* Top bar */}
-      <div className="flex items-center px-6" style={{ backgroundColor: 'var(--color-gray-800)', height: '44px' }}>
+      <div className="flex items-center px-6" style={{ backgroundColor: '#2b3544', height: '44px' }}>
         <div className="rounded flex items-center justify-center text-white text-xs font-extrabold" style={{ width: 28, height: 28, backgroundColor: 'var(--color-ocean-600)' }}>
           M
         </div>

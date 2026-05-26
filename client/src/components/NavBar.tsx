@@ -26,59 +26,22 @@ export default function NavBar() {
   ];
 
   return (
-    <nav style={{ backgroundColor: 'var(--color-gray-800)' }} className="text-white sticky top-0 z-50">
-      <div className="px-4 sm:px-6">
+    <nav className="sticky top-0 z-50">
+      {/* Primary dark bar — branding + user only */}
+      <div style={{ backgroundColor: '#2b3544' }} className="text-white px-4 sm:px-6">
         <div className="flex items-center" style={{ height: '44px' }}>
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 mr-6 shrink-0">
+          {/* Logo + app name */}
+          <Link to="/" className="flex items-center gap-2.5 shrink-0">
             <div
               className="rounded flex items-center justify-center text-white text-xs font-extrabold"
               style={{ width: 28, height: 28, backgroundColor: 'var(--color-ocean-600)' }}
             >
               M
             </div>
+            <span className="text-sm font-semibold text-white hidden sm:inline">HR Resume Filter</span>
           </Link>
 
-          {/* Nav items */}
-          <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide">
-            {allItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = item.to === '/'
-                ? pathname === '/'
-                : pathname.startsWith(item.to);
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded whitespace-nowrap"
-                  style={{
-                    fontSize: '0.8125rem',
-                    fontWeight: 500,
-                    transition: `all var(--duration-normal) var(--ease-out)`,
-                    backgroundColor: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
-                    color: isActive ? 'white' : 'var(--color-gray-300)',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
-                      e.currentTarget.style.color = 'white';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.color = 'var(--color-gray-300)';
-                    }
-                  }}
-                >
-                  <Icon size={14} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* Right side */}
+          {/* Right side — user info + logout */}
           <div className="ml-auto flex items-center gap-3 shrink-0">
             {user && (
               <div className="hidden sm:flex items-center gap-2">
@@ -89,12 +52,12 @@ export default function NavBar() {
                     height: 24,
                     fontSize: '0.625rem',
                     backgroundColor: 'var(--color-warning-500)',
-                    color: 'var(--color-gray-800)',
+                    color: '#2b3544',
                   }}
                 >
                   {(user.name || user.email).charAt(0).toUpperCase()}
                 </div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--color-gray-300)' }} className="max-w-[140px] truncate">
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-gray-300)' }} className="max-w-[160px] truncate">
                   {user.name || user.email}
                 </span>
                 {isAdmin && <Shield size={12} style={{ color: 'var(--color-warning-500)' }} />}
@@ -125,10 +88,11 @@ export default function NavBar() {
         </div>
       </div>
 
-      {/* Sub-nav breadcrumb */}
-      <div style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-default)' }} className="px-4 sm:px-6">
-        <div className="flex items-center gap-3 overflow-x-auto" style={{ height: '36px', fontSize: '0.75rem' }}>
+      {/* Sub-nav — page navigation */}
+      <div style={{ backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border-default)' }} className="px-4 sm:px-6">
+        <div className="flex items-center gap-1 overflow-x-auto" style={{ height: '38px', fontSize: '0.8125rem' }}>
           {allItems.map((item) => {
+            const Icon = item.icon;
             const isActive = item.to === '/'
               ? pathname === '/'
               : pathname.startsWith(item.to);
@@ -136,14 +100,27 @@ export default function NavBar() {
               <Link
                 key={item.to}
                 to={item.to}
-                className="flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded whitespace-nowrap"
                 style={{
                   transition: `all var(--duration-normal) var(--ease-out)`,
                   color: isActive ? 'var(--color-ocean-700)' : 'var(--color-gray-500)',
-                  fontWeight: isActive ? 600 : 400,
+                  fontWeight: isActive ? 600 : 500,
                   backgroundColor: isActive ? 'var(--color-ocean-50)' : 'transparent',
                 }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-gray-100)';
+                    e.currentTarget.style.color = 'var(--color-gray-700)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--color-gray-500)';
+                  }
+                }}
               >
+                <Icon size={14} />
                 {item.label}
               </Link>
             );
