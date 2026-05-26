@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Save, Eye, EyeOff, CheckCircle2, ArrowLeft, Cloud, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Eye, EyeOff, CheckCircle2, ArrowLeft, Cloud, CloudOff, Loader2, Key, Shield } from 'lucide-react';
 import {
   getStoredApiKey,
   storeApiKey,
@@ -22,6 +22,7 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [serverKeyStatus, setServerKeyStatus] = useState<string | null>(null);
+  const [serverLoading, setServerLoading] = useState(true);
 
   useEffect(() => {
     const stored = getStoredApiKey();
@@ -38,9 +39,8 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
           }
         }
       })
-      .catch(() => {
-        /* server unavailable — localStorage only */
-      });
+      .catch(() => {})
+      .finally(() => setServerLoading(false));
   }, []);
 
   const handleSave = async () => {
@@ -60,18 +60,15 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
     setLoading(true);
     try {
       storeApiKey(apiKey.trim());
-
       await saveApiKeyToServer(apiKey.trim());
 
       const { apiKey: maskedKey } = await loadApiKeyFromServer();
-      if (maskedKey) {
-        setServerKeyStatus(maskedKey);
-      }
+      if (maskedKey) setServerKeyStatus(maskedKey);
 
       setSaved(true);
       onApiKeySet?.();
       setTimeout(() => setSaved(false), 3000);
-    } catch (err) {
+    } catch {
       storeApiKey(apiKey.trim());
       setSaved(true);
       setError('Saved locally but failed to sync to server. It may not persist across browsers.');
@@ -81,45 +78,47 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
     }
   };
 
-  const handleBack = () => {
-    navigate('/');
-  };
-
   const handleClear = async () => {
     setApiKey('');
     setError('');
     setSaved(false);
     setServerKeyStatus(null);
     removeApiKey();
-    try {
-      await deleteApiKeyFromServer();
-    } catch {
-      /* best effort */
-    }
+    try { await deleteApiKeyFromServer(); } catch {}
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-8 sm:py-12">
+        <div className="max-w-xl mx-auto">
+          {/* Back button */}
+          <button
+            onClick={() => navigate('/')}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Back to Analyzer
+          </button>
+
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-5 sm:px-8 sm:py-6">
               <div className="flex items-center gap-3">
-                <SettingsIcon className="text-indigo-600" size={28} />
-                <h1 className="text-3xl font-bold text-gray-800">Settings</h1>
+                <div className="bg-white/20 p-2 rounded-lg">
+                  <SettingsIcon className="text-white" size={22} />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-white">Settings</h1>
+                  <p className="text-indigo-200 text-sm mt-0.5">Manage your API configuration</p>
+                </div>
               </div>
-              <button
-                onClick={handleBack}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
-              >
-                <ArrowLeft size={20} />
-                Back
-              </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="p-6 sm:p-8 space-y-6">
+              {/* API Key Field */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-2">
+                  <Key size={15} className="text-indigo-500" />
                   OpenAI API Key
                 </label>
                 <div className="relative">
@@ -131,92 +130,89 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
                       setError('');
                       setSaved(false);
                     }}
-                    placeholder="sk-..."
-                    className="w-full px-4 py-3 pr-20 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="sk-proj-..."
+                    className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 focus:bg-white transition-colors font-mono text-sm overflow-hidden text-ellipsis"
                   />
                   <button
                     type="button"
                     onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
                   >
-                    {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
 
-                {serverKeyStatus && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-green-700">
-                    <Cloud size={16} />
-                    <span>Stored on server: {serverKeyStatus}</span>
-                  </div>
-                )}
+                {/* Server sync status */}
+                <div className="mt-2.5 flex items-start gap-2 text-xs">
+                  {serverLoading ? (
+                    <span className="text-gray-400 flex items-center gap-1.5">
+                      <Loader2 size={13} className="animate-spin" />
+                      Checking server...
+                    </span>
+                  ) : serverKeyStatus ? (
+                    <span className="text-emerald-600 flex items-center gap-1.5">
+                      <Cloud size={13} />
+                      <span className="break-all">Synced to server: <code className="bg-emerald-50 px-1.5 py-0.5 rounded text-emerald-700 break-all">{serverKeyStatus}</code></span>
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 flex items-center gap-1.5">
+                      <CloudOff size={13} />
+                      Not synced to server yet
+                    </span>
+                  )}
+                </div>
 
-                <p className="mt-2 text-sm text-gray-500">
-                  Your API key is saved on the server so it persists across browsers and sessions.
-                  Get your API key from{' '}
-                  <a
-                    href="https://platform.openai.com/api-keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-indigo-600 hover:text-indigo-700 underline"
-                  >
-                    OpenAI Platform
+                <p className="mt-2 text-xs text-gray-400 leading-relaxed">
+                  Get your key from{' '}
+                  <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:text-indigo-600 underline underline-offset-2">
+                    platform.openai.com
                   </a>
+                  . Keys are stored on the server and persist across browsers.
                 </p>
               </div>
 
+              {/* Error / Success */}
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm">
                   {error}
                 </div>
               )}
 
-              {saved && (
-                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
-                  <CheckCircle2 size={20} />
+              {saved && !error && (
+                <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                  <CheckCircle2 size={18} />
                   API key saved successfully!
                 </div>
               )}
 
+              {/* Actions */}
               <div className="flex gap-3">
                 <button
                   onClick={handleSave}
                   disabled={loading}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-medium py-3 px-5 rounded-xl shadow-sm transition-all duration-200 flex items-center justify-center gap-2 text-sm"
                 >
-                  {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                   {loading ? 'Saving...' : 'Save API Key'}
                 </button>
                 <button
                   onClick={handleClear}
-                  className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors duration-200"
+                  className="px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium rounded-xl transition-colors text-sm"
                 >
                   Clear
                 </button>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">
+              {/* Security note */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2.5">
+                  <Shield size={15} className="text-slate-400" />
                   Security & Privacy
-                </h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-indigo-600 mt-1">&bull;</span>
-                    <span>
-                      Your API key is stored on the server and in your browser for convenience
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-indigo-600 mt-1">&bull;</span>
-                    <span>
-                      The API key is sent directly to OpenAI's servers for resume analysis
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-indigo-600 mt-1">&bull;</span>
-                    <span>
-                      You can clear your API key at any time by clicking the Clear button
-                    </span>
-                  </li>
+                </div>
+                <ul className="space-y-1.5 text-xs text-gray-500 leading-relaxed">
+                  <li>Your API key is stored on the server and locally in your browser.</li>
+                  <li>The key is sent directly to OpenAI for resume analysis only.</li>
+                  <li>You can clear your key at any time with the Clear button.</li>
                 </ul>
               </div>
             </div>

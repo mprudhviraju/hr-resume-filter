@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, ChevronDown, ChevronUp, Clock, History, Settings } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Clock, History, Settings, FileSearch, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import FolderSelector from '../components/FolderSelector';
 import CriteriaInput from '../components/CriteriaInput';
@@ -346,37 +346,54 @@ function AnalyzePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-8">
-          <div className="flex items-center justify-between mb-4">
-            {/* Logo placeholder (replace with your logo component/image) */}
-            <div className="flex-1 flex items-center justify-start" >
-                <img src='https://www.mirabeltechnologies.com/wp-content/uploads/2022/05/Mirabel-gold-white-background.png'/>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Top navigation bar */}
+      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200/60 sticky top-0 z-30">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <img
+                src="https://www.mirabeltechnologies.com/wp-content/uploads/2022/05/Mirabel-gold-white-background.png"
+                alt="Mirabel Technologies"
+                className="h-9 w-auto object-contain"
+              />
+              <div className="hidden sm:block h-6 w-px bg-gray-200" />
+              <span className="hidden sm:inline text-sm font-semibold text-gray-700">HR Resume Filter</span>
             </div>
-            <div className="flex-1 text-center">
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                HR Resume Filter
-              </h1>
-              <p className="text-gray-600">
-                AI-powered resume analysis and candidate shortlisting
-              </p>
-            </div>
-            <div className="flex-1 flex justify-end">
-              <Link
-                to="/settings"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
-              >
-                <Settings size={20} />
-                Settings
-              </Link>
-            </div>
+            <Link
+              to="/settings"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              <Settings size={16} />
+              Settings
+            </Link>
           </div>
+        </div>
+      </nav>
+
+      <div className="container mx-auto px-4 sm:px-6 py-8">
+        {/* Hero section */}
+        <header className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 border border-indigo-100">
+            <FileSearch size={14} />
+            AI-Powered Analysis
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
+            Resume Filter
+          </h1>
+          <p className="mt-2 text-gray-500 max-w-lg mx-auto text-sm sm:text-base">
+            Upload resumes and define your criteria. Our AI analyzes each candidate and provides detailed shortlisting recommendations.
+          </p>
         </header>
 
         {!results ? (
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <div className="max-w-3xl mx-auto space-y-5">
+            {/* Step 1 — Upload */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">1</span>
+                <h2 className="text-sm font-semibold text-gray-800">Upload Resumes</h2>
+              </div>
               <FolderSelector
                 showServerFolderPath={SHOW_SERVER_FOLDER_PATH}
                 folderPath={folderPath}
@@ -384,20 +401,25 @@ function AnalyzePage() {
                 onFilesSelected={handleFilesSelected}
               />
               {uploadedFiles.length > 0 && (
-                <div className="mt-4 p-3 bg-indigo-50 rounded-lg">
-                  <p className="text-sm font-medium text-indigo-800 mb-2">
-                    {uploadedFiles.length} file(s) selected:
+                <div className="mt-4 p-3 bg-indigo-50/60 rounded-xl border border-indigo-100">
+                  <p className="text-xs font-semibold text-indigo-700 mb-1.5">
+                    {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} selected
                   </p>
-                  <ul className="text-sm text-indigo-700 list-disc list-inside">
+                  <ul className="text-xs text-indigo-600 space-y-0.5">
                     {uploadedFiles.map((file, idx) => (
-                      <li key={idx}>{file.name}</li>
+                      <li key={idx} className="truncate">{file.name}</li>
                     ))}
                   </ul>
                 </div>
               )}
             </div>
 
-            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+            {/* Step 2 — Criteria */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">2</span>
+                <h2 className="text-sm font-semibold text-gray-800">Define Criteria</h2>
+              </div>
               <CriteriaInput
                 criteria={criteria}
                 onCriteriaChange={setCriteria}
@@ -405,120 +427,94 @@ function AnalyzePage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+              <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm">
                 {error}
               </div>
             )}
 
             {jobHistory.length > 0 && !results && (
-              <div className="max-w-4xl mx-auto mb-6">
-                <div className="bg-white rounded-lg shadow-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <History className="text-indigo-600" size={18} />
-                      <h2 className="text-sm font-semibold text-gray-800">
-                        Recent Analyses
-                      </h2>
-                    </div>
-                    <button
-                      type="button"
-                      className="text-xs text-indigo-600 hover:text-indigo-800"
-                      onClick={() => setJobHistoryExpanded((prev) => !prev)}
-                    >
-                      {jobHistoryExpanded ? 'Hide history' : 'Show history'}
-                    </button>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between"
+                  onClick={() => setJobHistoryExpanded((prev) => !prev)}
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="text-gray-400" size={16} />
+                    <span className="text-sm font-semibold text-gray-700">Recent Analyses</span>
+                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{jobHistory.length}</span>
                   </div>
-                  {jobHistoryExpanded && (
-                    <ul className="max-h-56 overflow-y-auto divide-y divide-gray-100">
-                      {jobHistory.map((job) => (
-                        <li
-                          key={job.id}
-                          className="py-2 flex items-center justify-between text-sm"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-800 truncate">
-                                {new Date(job.startedAt).toLocaleString()}
-                              </span>
-                              <span
-                                className={`text-xs px-2 py-0.5 rounded-full ${
-                                  job.success
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-red-100 text-red-700'
-                                }`}
-                              >
-                                {job.success ? 'Success' : 'Error'}
-                              </span>
-                            </div>
-                            <div className="text-xs text-gray-insufficient text-gray-600">
-                              {job.total} resume
-                              {job.total === 1 ? '' : 's'} •{' '}
-                              {job.finishedAt
-                                ? `Duration: ${formatDuration(
-                                    Date.parse(job.finishedAt) -
-                                      Date.parse(job.startedAt),
-                                  )}`
-                                : 'In progress'}
-                            </div>
-                            {job.error && (
-                              <div className="text-xs text-red-600 mt-1 truncate">
-                                {job.error}
-                              </div>
-                            )}
-                          </div>
-                          {job.results && (
-                            <button
-                              type="button"
-                              className="ml-3 text-xs px-3 py-1 rounded-full border border-indigo-500 text-indigo-600 hover:bg-indigo-50"
-                              onClick={() => {
-                                setResults(job.results || null);
-                                setError('');
-                                setProgress(null);
-                              }}
+                  {jobHistoryExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                </button>
+                {jobHistoryExpanded && (
+                  <ul className="mt-3 max-h-56 overflow-y-auto divide-y divide-gray-50">
+                    {jobHistory.map((job) => (
+                      <li
+                        key={job.id}
+                        className="py-2.5 flex items-center justify-between"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-700 truncate">
+                              {new Date(job.startedAt).toLocaleString()}
+                            </span>
+                            <span
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                job.success
+                                  ? 'bg-emerald-50 text-emerald-600'
+                                  : 'bg-red-50 text-red-500'
+                              }`}
                             >
-                              View results
-                            </button>
+                              {job.success ? 'Success' : 'Error'}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-400 mt-0.5">
+                            {job.total} resume{job.total === 1 ? '' : 's'} &middot;{' '}
+                            {job.finishedAt
+                              ? formatDuration(Date.parse(job.finishedAt) - Date.parse(job.startedAt))
+                              : 'In progress'}
+                          </div>
+                          {job.error && (
+                            <div className="text-xs text-red-500 mt-1 truncate">{job.error}</div>
                           )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
+                        </div>
+                        {job.results && (
+                          <button
+                            type="button"
+                            className="ml-3 text-xs px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-medium transition-colors"
+                            onClick={() => {
+                              setResults(job.results || null);
+                              setError('');
+                              setProgress(null);
+                            }}
+                          >
+                            View
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
 
-            <div className="text-center">
+            {/* Analyze button */}
+            <div className="pt-2">
               <button
                 onClick={handleAnalyze}
                 disabled={loading || (!folderPath && uploadedFiles.length === 0) || !criteria}
-                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200 flex items-center gap-2 mx-auto"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3.5 px-8 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2.5 text-sm"
               >
                 {loading ? (
                   <>
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
+                    <Loader2 className="animate-spin h-5 w-5" />
                     Analyzing Resumes...
                   </>
                 ) : (
-                  'Analyze Resumes'
+                  <>
+                    <FileSearch size={18} />
+                    Analyze Resumes
+                  </>
                 )}
               </button>
             </div>

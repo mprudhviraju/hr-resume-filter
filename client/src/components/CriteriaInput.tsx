@@ -16,23 +16,21 @@ const CriteriaInput: React.FC<CriteriaInputProps> = ({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-sm font-semibold text-gray-800 mb-2">
         Filtering Criteria
       </label>
       <textarea
         value={criteria}
         onChange={(e) => onCriteriaChange(e.target.value)}
         placeholder={exampleCriteria}
-        rows={8}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+        rows={6}
+        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 focus:bg-white resize-none transition-colors placeholder:text-gray-300"
       />
-      <p className="mt-2 text-sm text-gray-500">
-        Describe the requirements, skills, experience, and qualifications you're
-        looking for in candidates.
+      <p className="mt-1.5 text-xs text-gray-400">
+        Describe the skills, experience, education, and qualifications you need.
       </p>
     </div>
   );
 };
 
 export default CriteriaInput;
-

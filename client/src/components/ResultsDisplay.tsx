@@ -1,98 +1,86 @@
 import { AnalysisResults } from '../types';
-import { CheckCircle2, XCircle, Star, RotateCcw } from 'lucide-react';
+import { CheckCircle2, XCircle, Star, RotateCcw, Mail, Phone, Briefcase, GraduationCap } from 'lucide-react';
 
 interface ResultsDisplayProps {
   results: AnalysisResults;
   onReset: () => void;
 }
 
-const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
-  results,
-  onReset,
-}) => {
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => {
   const { shortlisted, notShortlisted, summary } = results;
+  const total = shortlisted.length + notShortlisted.length;
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header with stats */}
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-800">
-            Analysis Results
-          </h2>
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Stats bar */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Analysis Results</h2>
+            <p className="text-sm text-gray-400 mt-0.5">{total} candidate{total !== 1 ? 's' : ''} analyzed</p>
+          </div>
           <button
             onClick={onReset}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
           >
-            <RotateCcw size={18} />
+            <RotateCcw size={16} />
             New Analysis
           </button>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="flex items-center gap-2 text-green-700">
-              <CheckCircle2 size={24} />
-              <span className="text-lg font-semibold">
-                {shortlisted.length} Shortlisted
-              </span>
+        <div className="grid grid-cols-2 gap-3 mt-5">
+          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-3">
+            <div className="bg-emerald-100 p-2 rounded-lg">
+              <CheckCircle2 size={20} className="text-emerald-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-emerald-700">{shortlisted.length}</div>
+              <div className="text-xs text-emerald-500 font-medium">Shortlisted</div>
             </div>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex items-center gap-2 text-gray-700">
-              <XCircle size={24} />
-              <span className="text-lg font-semibold">
-                {notShortlisted.length} Not Shortlisted
-              </span>
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex items-center gap-3">
+            <div className="bg-gray-100 p-2 rounded-lg">
+              <XCircle size={20} className="text-gray-400" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-gray-700">{notShortlisted.length}</div>
+              <div className="text-xs text-gray-400 font-medium">Not Shortlisted</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Overall Summary */}
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">
-          Executive Summary
-        </h3>
-        <div className="prose max-w-none">
-          <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-            {summary}
-          </p>
-        </div>
+      {/* Summary */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h3 className="text-sm font-semibold text-gray-800 mb-3">Executive Summary</h3>
+        <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{summary}</p>
       </div>
 
-      {/* Shortlisted Candidates */}
+      {/* Shortlisted */}
       {shortlisted.length > 0 && (
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <CheckCircle2 className="text-green-600" size={24} />
+        <div>
+          <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <CheckCircle2 size={16} className="text-emerald-500" />
             Shortlisted Candidates ({shortlisted.length})
           </h3>
-          <div className="space-y-6">
+          <div className="space-y-4">
             {shortlisted.map((candidate, index) => (
-              <CandidateCard
-                key={index}
-                candidate={candidate}
-                isShortlisted={true}
-              />
+              <CandidateCard key={index} candidate={candidate} isShortlisted />
             ))}
           </div>
         </div>
       )}
 
-      {/* Not Shortlisted Candidates (Collapsible) */}
+      {/* Not Shortlisted */}
       {notShortlisted.length > 0 && (
-        <details className="bg-white rounded-lg shadow-lg p-6">
-          <summary className="text-xl font-semibold text-gray-800 cursor-pointer flex items-center gap-2">
-            <XCircle className="text-gray-500" size={24} />
+        <details className="group">
+          <summary className="text-sm font-semibold text-gray-600 cursor-pointer flex items-center gap-2 mb-3 select-none">
+            <XCircle size={16} className="text-gray-400" />
             Not Shortlisted ({notShortlisted.length})
+            <span className="text-xs text-gray-400 font-normal ml-1">click to expand</span>
           </summary>
-          <div className="mt-4 space-y-4">
+          <div className="space-y-4">
             {notShortlisted.map((candidate, index) => (
-              <CandidateCard
-                key={index}
-                candidate={candidate}
-                isShortlisted={false}
-              />
+              <CandidateCard key={index} candidate={candidate} isShortlisted={false} />
             ))}
           </div>
         </details>
@@ -106,113 +94,103 @@ interface CandidateCardProps {
   isShortlisted: boolean;
 }
 
-const CandidateCard: React.FC<CandidateCardProps> = ({
-  candidate,
-  isShortlisted,
-}) => {
+const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, isShortlisted }) => {
   return (
-    <div
-      className={`border-2 rounded-lg p-5 ${
-        isShortlisted
-          ? 'border-green-200 bg-green-50'
-          : 'border-gray-200 bg-gray-50'
-      }`}
-    >
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <h4 className="text-lg font-semibold text-gray-800">
+    <div className={`bg-white rounded-2xl border p-5 shadow-sm transition-shadow hover:shadow-md ${
+      isShortlisted ? 'border-emerald-100' : 'border-gray-100'
+    }`}>
+      {/* Header row */}
+      <div className="flex justify-between items-start gap-4 mb-4">
+        <div className="min-w-0">
+          <h4 className="text-base font-bold text-gray-900 truncate">
             {candidate.extractedInfo.name || candidate.fileName}
           </h4>
-          <p className="text-sm text-gray-600">{candidate.fileName}</p>
+          {candidate.extractedInfo.name && (
+            <p className="text-xs text-gray-400 truncate">{candidate.fileName}</p>
+          )}
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-indigo-600">
+        <div className="flex-shrink-0 text-center">
+          <div className={`text-xl font-extrabold ${
+            candidate.matchScore >= 70 ? 'text-emerald-600' :
+            candidate.matchScore >= 40 ? 'text-amber-500' : 'text-gray-400'
+          }`}>
             {candidate.matchScore}%
           </div>
-          <div className="text-xs text-gray-500">Match Score</div>
+          <div className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Match</div>
         </div>
       </div>
 
-      {/* Extracted Info */}
-      {(candidate.extractedInfo.email ||
-        candidate.extractedInfo.phone ||
-        candidate.extractedInfo.experience ||
-        candidate.extractedInfo.education) && (
-        <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
+      {/* Contact info */}
+      {(candidate.extractedInfo.email || candidate.extractedInfo.phone ||
+        candidate.extractedInfo.experience || candidate.extractedInfo.education) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 mb-4 text-xs text-gray-500">
           {candidate.extractedInfo.email && (
-            <div>
-              <span className="font-medium">Email:</span>{' '}
+            <span className="flex items-center gap-1.5 truncate">
+              <Mail size={12} className="text-gray-300 flex-shrink-0" />
               {candidate.extractedInfo.email}
-            </div>
+            </span>
           )}
           {candidate.extractedInfo.phone && (
-            <div>
-              <span className="font-medium">Phone:</span>{' '}
+            <span className="flex items-center gap-1.5">
+              <Phone size={12} className="text-gray-300 flex-shrink-0" />
               {candidate.extractedInfo.phone}
-            </div>
+            </span>
           )}
           {candidate.extractedInfo.experience && (
-            <div>
-              <span className="font-medium">Experience:</span>{' '}
+            <span className="flex items-center gap-1.5">
+              <Briefcase size={12} className="text-gray-300 flex-shrink-0" />
               {candidate.extractedInfo.experience}
-            </div>
+            </span>
           )}
           {candidate.extractedInfo.education && (
-            <div>
-              <span className="font-medium">Education:</span>{' '}
+            <span className="flex items-center gap-1.5 truncate">
+              <GraduationCap size={12} className="text-gray-300 flex-shrink-0" />
               {candidate.extractedInfo.education}
-            </div>
+            </span>
           )}
         </div>
       )}
 
       {/* Skills */}
-      {candidate.extractedInfo.skills &&
-        candidate.extractedInfo.skills.length > 0 && (
-          <div className="mb-4">
-            <span className="font-medium text-sm">Skills: </span>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {candidate.extractedInfo.skills.map((skill, idx) => (
-                <span
-                  key={idx}
-                  className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+      {candidate.extractedInfo.skills && candidate.extractedInfo.skills.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {candidate.extractedInfo.skills.map((skill, idx) => (
+            <span key={idx} className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[11px] font-medium">
+              {skill}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Summary */}
-      <div className="mb-4">
-        <p className="text-gray-700 text-sm leading-relaxed">
-          {candidate.summary}
-        </p>
-      </div>
+      <p className="text-sm text-gray-600 leading-relaxed mb-4">{candidate.summary}</p>
 
       {/* Reasons */}
-      <div className="mb-4">
-        <h5 className="font-semibold text-sm text-gray-800 mb-2">
-          {isShortlisted ? 'Shortlisting Reasons:' : 'Not Shortlisted Because:'}
+      <div className="mb-3">
+        <h5 className="text-xs font-semibold text-gray-700 mb-1.5">
+          {isShortlisted ? 'Why Shortlisted' : 'Why Not Shortlisted'}
         </h5>
-        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+        <ul className="space-y-1 text-xs text-gray-500">
           {candidate.reasons.map((reason, idx) => (
-            <li key={idx}>{reason}</li>
+            <li key={idx} className="flex items-start gap-1.5">
+              <span className="mt-1 block h-1 w-1 rounded-full bg-gray-300 flex-shrink-0" />
+              {reason}
+            </li>
           ))}
         </ul>
       </div>
 
-      {/* Standout Features */}
+      {/* Standout */}
       {isShortlisted && candidate.standoutFeatures.length > 0 && (
-        <div className="border-t pt-4 mt-4">
-          <h5 className="font-semibold text-sm text-gray-800 mb-2 flex items-center gap-2">
-            <Star className="text-yellow-500" size={16} />
-            Standout Features:
+        <div className="border-t border-gray-100 pt-3 mt-3">
+          <h5 className="text-xs font-semibold text-amber-600 mb-1.5 flex items-center gap-1.5">
+            <Star size={12} className="text-amber-400" />
+            Standout Features
           </h5>
-          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+          <ul className="space-y-1 text-xs text-gray-600">
             {candidate.standoutFeatures.map((feature, idx) => (
-              <li key={idx} className="text-indigo-700">
+              <li key={idx} className="flex items-start gap-1.5">
+                <span className="mt-1 block h-1 w-1 rounded-full bg-amber-300 flex-shrink-0" />
                 {feature}
               </li>
             ))}
@@ -224,4 +202,3 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
 };
 
 export default ResultsDisplay;
-
