@@ -28,7 +28,7 @@ export default function NavBar() {
   return (
     <nav className="sticky top-0 z-50">
       {/* Primary dark bar — branding + user only */}
-      <div style={{ background: 'linear-gradient(to right, #1e3044, #152538)' }} className="text-white px-4 sm:px-6">
+      <div style={{ background: 'linear-gradient(to right, var(--color-ocean-800), var(--color-ocean-900))' }} className="text-white px-4 sm:px-6">
         <div className="flex items-center" style={{ height: '44px' }}>
           {/* Logo + app name */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
@@ -52,7 +52,7 @@ export default function NavBar() {
                     height: 24,
                     fontSize: '0.625rem',
                     backgroundColor: 'var(--color-warning-500)',
-                    color: '#1e3044',
+                    color: 'var(--color-ocean-900)',
                   }}
                 >
                   {(user.name || user.email).charAt(0).toUpperCase()}
