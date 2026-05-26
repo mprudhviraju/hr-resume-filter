@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, ChevronDown, ChevronUp, Clock, History, Settings, FileSearch, Loader2, LogOut, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { CheckCircle2, ChevronDown, ChevronUp, Clock, FileSearch, Loader2 } from 'lucide-react';
 import FolderSelector from '../components/FolderSelector';
 import CriteriaInput from '../components/CriteriaInput';
 import ResultsDisplay from '../components/ResultsDisplay';
+import NavBar from '../components/NavBar';
 import { AnalysisResults } from '../types';
 import { getStoredApiKey, loadApiKeyFromServer } from '../utils/apiKeyStorage';
 import { JobHistoryItem, loadJobHistory, saveJobHistory } from '../utils/jobHistoryStorage';
@@ -29,7 +29,6 @@ const STREAM_BASE_URL = (import.meta.env.VITE_STREAM_BASE_URL || '').replace(/\/
 const SHOW_SERVER_FOLDER_PATH =
   import.meta.env.VITE_ENABLE_FOLDER_PATH === 'true';
 
-/** Same-origin `/api` in dev (Vite proxy) or explicit API host in production */
 function resolveApiUrl(pathWithLeadingSlash: string): string {
   const path = pathWithLeadingSlash.startsWith('/')
     ? pathWithLeadingSlash
@@ -38,7 +37,8 @@ function resolveApiUrl(pathWithLeadingSlash: string): string {
 }
 
 function AnalyzePage() {
-  const { user, isAdmin, logout, authHeaders } = useAuth();
+  const { authHeaders } = useAuth();
+
   const [folderPath, setFolderPath] = useState<string>('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [criteria, setCriteria] = useState<string>('');
@@ -47,12 +47,11 @@ function AnalyzePage() {
   const [error, setError] = useState<string>('');
   const [progress, setProgress] = useState<ProgressState | null>(null);
   const [elapsedMs, setElapsedMs] = useState<number>(0);
-  const [jobHistory, setJobHistory] = useState<JobHistoryItem[]>(() => loadJobHistory());
+  const [, setJobHistory] = useState<JobHistoryItem[]>(() => loadJobHistory());
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
   const [, setCurrentJobId] = useState<string | null>(null);
   const [jobStartedAt, setJobStartedAt] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const [jobHistoryExpanded, setJobHistoryExpanded] = useState<boolean>(false);
   const [lastJobSummary, setLastJobSummary] = useState<LastJobSummary | null>(null);
   const [isStatusPanelCollapsed, setIsStatusPanelCollapsed] =
     useState<boolean>(false);
@@ -69,7 +68,7 @@ function AnalyzePage() {
   const handleFilesSelected = (files: FileList | null) => {
     if (files) {
       setUploadedFiles(Array.from(files));
-      setFolderPath(''); // Clear folder path when files are uploaded
+      setFolderPath('');
     }
   };
 
@@ -92,7 +91,6 @@ function AnalyzePage() {
           setError('Please configure your OpenAI API key in Settings first');
           return;
         }
-        // Server has the key — send without it; the server will use its stored copy
         apiKey = null;
       } catch {
         setError('Please configure your OpenAI API key in Settings first');
@@ -100,7 +98,6 @@ function AnalyzePage() {
       }
     }
 
-    // Reset state before starting
     setLoading(true);
     setError('');
     setResults(null);
@@ -115,27 +112,23 @@ function AnalyzePage() {
 
     try {
       const formData = new FormData();
-      
-      // Add uploaded files if any
+
       uploadedFiles.forEach((file) => {
         formData.append('resumes', file);
       });
 
-      // Add folder path if provided (for server-side folder access)
       if (folderPath.trim()) {
         formData.append('folderPath', folderPath);
       }
 
-      // Add criteria
       formData.append('criteria', criteria);
-      
+
       if (apiKey) {
         formData.append('apiKey', apiKey);
       }
 
       const apiUrl = resolveApiUrl('/api/analyze');
 
-      // Step 1: create job
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: authHeaders(),
@@ -148,9 +141,7 @@ function AnalyzePage() {
         if (bodyText) {
           try {
             parsed = JSON.parse(bodyText) as typeof parsed;
-          } catch {
-            /* non‑JSON bodies (proxy HTML, empty, etc.) */
-          }
+          } catch { /* non-JSON */ }
         }
         const trimmed = bodyText?.trim()?.slice(0, 600) ?? '';
         const detail =
@@ -173,8 +164,6 @@ function AnalyzePage() {
 
       setCurrentJobId(jobId);
 
-      // Step 2: open SSE stream for progress & final results
-      // Use Lambda Function URL if configured, otherwise fall back to API proxy (local dev)
       const streamUrl = STREAM_BASE_URL
         ? `${STREAM_BASE_URL}/${jobId}`
         : resolveApiUrl(`/api/analyze/${jobId}/stream`);
@@ -283,9 +272,7 @@ function AnalyzePage() {
           if (data?.error) {
             message = data.error;
           }
-        } catch {
-          // ignore parse errors
-        }
+        } catch { /* ignore */ }
 
         console.error('SSE error event', event);
         setError(message);
@@ -338,7 +325,6 @@ function AnalyzePage() {
     }
   };
 
-  // Cleanup SSE connection on unmount
   useEffect(() => {
     return () => {
       if (eventSourceRef.current) {
@@ -349,84 +335,17 @@ function AnalyzePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Top navigation bar */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200/60 sticky top-0 z-30">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <img
-                src="https://www.mirabeltechnologies.com/wp-content/uploads/2022/05/Mirabel-gold-white-background.png"
-                alt="Mirabel Technologies"
-                className="h-9 w-auto object-contain"
-              />
-              <div className="hidden sm:block h-6 w-px bg-gray-200" />
-              <span className="hidden sm:inline text-sm font-semibold text-gray-700">HR Resume Filter</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {user && (
-                <span className="hidden sm:inline text-xs text-gray-500 mr-1">
-                  {user.name || user.email}
-                </span>
-              )}
-              <Link
-                to="/history"
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <History size={16} />
-                <span className="hidden sm:inline">History</span>
-              </Link>
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  <Users size={16} />
-                  <span className="hidden sm:inline">Users</span>
-                </Link>
-              )}
-              <Link
-                to="/settings"
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <Settings size={16} />
-                <span className="hidden sm:inline">Settings</span>
-              </Link>
-              <button
-                onClick={logout}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-red-600 bg-gray-100 hover:bg-red-50 rounded-lg transition-colors"
-                title="Sign out"
-              >
-                <LogOut size={16} />
-                <span className="hidden sm:inline">Sign Out</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#f5f6f8]">
+      <NavBar />
 
-      <div className="container mx-auto px-4 sm:px-6 py-8">
-        {/* Hero section */}
-        <header className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 border border-indigo-100">
-            <FileSearch size={14} />
-            AI-Powered Analysis
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
-            Resume Filter
-          </h1>
-          <p className="mt-2 text-gray-500 max-w-lg mx-auto text-sm sm:text-base">
-            Upload resumes and define your criteria. Our AI analyzes each candidate and provides detailed shortlisting recommendations.
-          </p>
-        </header>
-
+      <div className="px-4 sm:px-6 py-5">
         {!results ? (
-          <div className="max-w-3xl mx-auto space-y-5">
+          <div className="max-w-4xl mx-auto space-y-4">
             {/* Step 1 — Upload */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">1</span>
-                <h2 className="text-sm font-semibold text-gray-800">Upload Resumes</h2>
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="flex items-center justify-center w-5 h-5 rounded bg-indigo-100 text-indigo-600 text-[10px] font-bold">1</span>
+                <h2 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Upload Resumes</h2>
               </div>
               <FolderSelector
                 showServerFolderPath={SHOW_SERVER_FOLDER_PATH}
@@ -435,8 +354,8 @@ function AnalyzePage() {
                 onFilesSelected={handleFilesSelected}
               />
               {uploadedFiles.length > 0 && (
-                <div className="mt-4 p-3 bg-indigo-50/60 rounded-xl border border-indigo-100">
-                  <p className="text-xs font-semibold text-indigo-700 mb-1.5">
+                <div className="mt-3 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                  <p className="text-xs font-semibold text-indigo-700 mb-1">
                     {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} selected
                   </p>
                   <ul className="text-xs text-indigo-600 space-y-0.5">
@@ -449,10 +368,10 @@ function AnalyzePage() {
             </div>
 
             {/* Step 2 — Criteria */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">2</span>
-                <h2 className="text-sm font-semibold text-gray-800">Define Criteria</h2>
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="flex items-center justify-center w-5 h-5 rounded bg-indigo-100 text-indigo-600 text-[10px] font-bold">2</span>
+                <h2 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Define Criteria</h2>
               </div>
               <CriteriaInput
                 criteria={criteria}
@@ -461,92 +380,26 @@ function AnalyzePage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
 
-            {jobHistory.length > 0 && !results && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-between"
-                  onClick={() => setJobHistoryExpanded((prev) => !prev)}
-                >
-                  <div className="flex items-center gap-2">
-                    <History className="text-gray-400" size={16} />
-                    <span className="text-sm font-semibold text-gray-700">Recent Analyses</span>
-                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{jobHistory.length}</span>
-                  </div>
-                  {jobHistoryExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
-                </button>
-                {jobHistoryExpanded && (
-                  <ul className="mt-3 max-h-56 overflow-y-auto divide-y divide-gray-50">
-                    {jobHistory.map((job) => (
-                      <li
-                        key={job.id}
-                        className="py-2.5 flex items-center justify-between"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-700 truncate">
-                              {new Date(job.startedAt).toLocaleString()}
-                            </span>
-                            <span
-                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                job.success
-                                  ? 'bg-emerald-50 text-emerald-600'
-                                  : 'bg-red-50 text-red-500'
-                              }`}
-                            >
-                              {job.success ? 'Success' : 'Error'}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-400 mt-0.5">
-                            {job.total} resume{job.total === 1 ? '' : 's'} &middot;{' '}
-                            {job.finishedAt
-                              ? formatDuration(Date.parse(job.finishedAt) - Date.parse(job.startedAt))
-                              : 'In progress'}
-                          </div>
-                          {job.error && (
-                            <div className="text-xs text-red-500 mt-1 truncate">{job.error}</div>
-                          )}
-                        </div>
-                        {job.results && (
-                          <button
-                            type="button"
-                            className="ml-3 text-xs px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-medium transition-colors"
-                            onClick={() => {
-                              setResults(job.results || null);
-                              setError('');
-                              setProgress(null);
-                            }}
-                          >
-                            View
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
             {/* Analyze button */}
-            <div className="pt-2">
+            <div>
               <button
                 onClick={handleAnalyze}
                 disabled={loading || (!folderPath && uploadedFiles.length === 0) || !criteria}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3.5 px-8 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2.5 text-sm"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center justify-center gap-2 text-sm"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="animate-spin h-5 w-5" />
+                    <Loader2 className="animate-spin h-4 w-4" />
                     Analyzing Resumes...
                   </>
                 ) : (
                   <>
-                    <FileSearch size={18} />
+                    <FileSearch size={16} />
                     Analyze Resumes
                   </>
                 )}
@@ -557,56 +410,46 @@ function AnalyzePage() {
           <ResultsDisplay results={results} onReset={handleReset} />
         )}
       </div>
+
+      {/* Floating progress / summary panel */}
       {(progress || lastJobSummary) && (
         <div className="fixed bottom-4 right-4 z-40 w-full max-w-sm sm:max-w-xs">
           {progress && !isStatusPanelCollapsed && (
-            <div className="bg-indigo-700 text-white shadow-2xl rounded-xl px-4 py-4 border border-indigo-300">
+            <div className="bg-[#2b3544] text-white shadow-2xl rounded-lg px-4 py-4 border border-gray-600">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">
-                      Analyzing resumes…
-                    </span>
-                    <span className="text-xs bg-indigo-500/40 px-2 py-0.5 rounded-full">
+                    <span className="font-semibold text-sm">Analyzing...</span>
+                    <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full">
                       {progress.currentIndex}/{progress.total}
                     </span>
                   </div>
-                  <div className="mt-1 text-xs text-indigo-100 truncate max-w-[220px]">
-                    Current file:{' '}
-                    <span className="font-medium">
-                      {progress.currentIndex === 0 && !progress.currentFileName
-                        ? 'Preparing analysis…'
-                        : progress.currentFileName || 'Processing…'}
-                    </span>
+                  <div className="mt-1 text-xs text-gray-300 truncate max-w-[220px]">
+                    {progress.currentIndex === 0 && !progress.currentFileName
+                      ? 'Preparing...'
+                      : progress.currentFileName || 'Processing...'}
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="text-indigo-200" size={18} />
-                  <button
-                    type="button"
-                    onClick={() => setIsStatusPanelCollapsed(true)}
-                    className="p-1 rounded-full hover:bg-indigo-600"
-                    aria-label="Minimize progress panel"
-                  >
-                    <ChevronDown size={16} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsStatusPanelCollapsed(true)}
+                  className="p-1 rounded hover:bg-white/10"
+                >
+                  <ChevronDown size={16} />
+                </button>
               </div>
-              <div className="mt-2 w-full h-2 bg-indigo-500/40 rounded-full overflow-hidden">
+              <div className="mt-2 w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-white/90 transition-all"
+                  className="h-full bg-indigo-400 transition-all"
                   style={{
                     width:
                       progress.total > 0
-                        ? `${Math.min(
-                            100,
-                            (progress.currentIndex / progress.total) * 100,
-                          )}%`
+                        ? `${Math.min(100, (progress.currentIndex / progress.total) * 100)}%`
                         : '0%',
                   }}
                 />
               </div>
-              <div className="mt-2 flex justify-between text-[11px] text-indigo-100">
+              <div className="mt-2 flex justify-between text-[11px] text-gray-400">
                 <span>Elapsed: {formatDuration(elapsedMs)}</span>
                 <span>
                   ETA:{' '}
@@ -615,19 +458,15 @@ function AnalyzePage() {
                         (elapsedMs / progress.currentIndex) *
                           (progress.total - progress.currentIndex),
                       )
-                    : 'Calculating…'}
+                    : 'Calculating...'}
                 </span>
               </div>
               {recentFiles.length > 0 && (
-                <div className="mt-3 border-t border-indigo-500/40 pt-2">
-                  <div className="text-[11px] font-semibold mb-1">
-                    Recent files
-                  </div>
-                  <ul className="space-y-0.5 max-h-20 overflow-y-auto text-[11px]">
+                <div className="mt-2 border-t border-white/10 pt-2">
+                  <div className="text-[10px] font-semibold mb-1 text-gray-300">Recent files</div>
+                  <ul className="space-y-0.5 max-h-16 overflow-y-auto text-[10px] text-gray-400">
                     {recentFiles.map((name) => (
-                      <li key={name} className="truncate">
-                        • {name}
-                      </li>
+                      <li key={name} className="truncate">• {name}</li>
                     ))}
                   </ul>
                 </div>
@@ -639,61 +478,34 @@ function AnalyzePage() {
             <button
               type="button"
               onClick={() => setIsStatusPanelCollapsed(false)}
-              className="flex items-center justify-between w-full bg-indigo-700 text-white shadow-2xl rounded-full px-3 py-2 border border-indigo-300 text-xs"
+              className="flex items-center justify-between w-full bg-[#2b3544] text-white shadow-2xl rounded-full px-3 py-2 border border-gray-600 text-xs"
             >
               <span className="flex items-center gap-2">
                 <Clock size={14} />
-                <span>
-                  {progress.currentIndex}/{progress.total} resumes…
-                </span>
+                <span>{progress.currentIndex}/{progress.total} resumes...</span>
               </span>
               <ChevronUp size={16} />
             </button>
           )}
 
           {!progress && lastJobSummary && !isStatusPanelCollapsed && (
-            <div className="bg-emerald-700 text-white shadow-2xl rounded-xl px-4 py-4 border border-emerald-300">
+            <div className="bg-emerald-700 text-white shadow-2xl rounded-lg px-4 py-4 border border-emerald-500">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="text-emerald-200" size={18} />
-                    <span className="font-semibold text-sm">
-                      Analysis complete
-                    </span>
+                    <CheckCircle2 size={16} className="text-emerald-200" />
+                    <span className="font-semibold text-sm">Analysis complete</span>
                   </div>
                   <div className="mt-1 text-xs text-emerald-100">
-                    {lastJobSummary.shortlisted}/{lastJobSummary.total} shortlisted •{' '}
-                    {formatDuration(lastJobSummary.durationMs)}
+                    {lastJobSummary.shortlisted}/{lastJobSummary.total} shortlisted • {formatDuration(lastJobSummary.durationMs)}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsStatusPanelCollapsed(true)}
-                  className="p-1 rounded-full hover:bg-emerald-600"
-                  aria-label="Minimize summary panel"
+                  className="p-1 rounded hover:bg-emerald-600"
                 >
                   <ChevronDown size={16} />
-                </button>
-              </div>
-              <div className="mt-3 flex justify-between items-center text-[11px] text-emerald-100">
-                <span>
-                  Finished:{' '}
-                  {new Date(lastJobSummary.finishedAt).toLocaleTimeString()}
-                </span>
-                <button
-                  type="button"
-                  className="px-3 py-1 rounded-full border border-emerald-200 text-xs hover:bg-emerald-600"
-                  onClick={() => {
-                    const historyMatch = jobHistory.find(
-                      (j) => j.id === lastJobSummary.id && j.results,
-                    );
-                    if (historyMatch?.results) {
-                      setResults(historyMatch.results);
-                      setError('');
-                    }
-                  }}
-                >
-                  View results
                 </button>
               </div>
             </div>
@@ -703,13 +515,11 @@ function AnalyzePage() {
             <button
               type="button"
               onClick={() => setIsStatusPanelCollapsed(false)}
-              className="flex items-center justify-between w-full bg-emerald-700 text-white shadow-2xl rounded-full px-3 py-2 border border-emerald-300 text-xs"
+              className="flex items-center justify-between w-full bg-emerald-700 text-white shadow-2xl rounded-full px-3 py-2 border border-emerald-500 text-xs"
             >
               <span className="flex items-center gap-2">
                 <CheckCircle2 size={14} />
-                <span>
-                  {lastJobSummary.shortlisted}/{lastJobSummary.total} shortlisted
-                </span>
+                <span>{lastJobSummary.shortlisted}/{lastJobSummary.total} shortlisted</span>
               </span>
               <ChevronUp size={16} />
             </button>
@@ -721,4 +531,3 @@ function AnalyzePage() {
 }
 
 export default AnalyzePage;
-

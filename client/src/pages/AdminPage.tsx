@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
   Users,
   UserPlus,
   Trash2,
@@ -11,6 +10,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import NavBar from '../components/NavBar';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 
@@ -118,55 +118,42 @@ export default function AdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-center max-w-sm">
-          <Shield size={40} className="text-red-400 mx-auto mb-4" />
-          <h2 className="text-lg font-bold text-gray-800 mb-2">Admin Access Required</h2>
-          <p className="text-sm text-gray-500 mb-4">You don't have permission to manage users.</p>
-          <button
-            onClick={() => navigate('/')}
-            className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-          >
-            Go back to Analyzer
-          </button>
+      <div className="min-h-screen bg-[#f5f6f8]">
+        <NavBar />
+        <div className="flex items-center justify-center py-20">
+          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center max-w-sm">
+            <Shield size={36} className="text-red-400 mx-auto mb-4" />
+            <h2 className="text-sm font-bold text-gray-800 mb-2">Admin Access Required</h2>
+            <p className="text-xs text-gray-500 mb-4">You don't have permission to manage users.</p>
+            <button
+              onClick={() => navigate('/')}
+              className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+            >
+              Go back to Analyzer
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8 sm:py-12">
+    <div className="min-h-screen bg-[#f5f6f8]">
+      <NavBar />
+      <div className="px-4 sm:px-6 py-5">
         <div className="max-w-2xl mx-auto">
-          <button
-            onClick={() => navigate('/')}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            Back to Analyzer
-          </button>
-
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-5 sm:px-8 sm:py-6">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <Users className="text-white" size={22} />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-white">User Management</h1>
-                  <p className="text-indigo-200 text-sm mt-0.5">
-                    Add or remove authorized users
-                  </p>
-                </div>
-              </div>
+            <div className="bg-[#f5f6f8] border-b border-gray-200 px-5 py-3 flex items-center gap-2">
+              <Users size={16} className="text-gray-500" />
+              <h1 className="text-sm font-semibold text-gray-700">User Management</h1>
             </div>
 
-            <div className="p-6 sm:p-8 space-y-6">
+            <div className="p-5 sm:p-6 space-y-5">
               {/* Add user form */}
-              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                  <UserPlus size={16} className="text-indigo-500" />
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <h3 className="text-xs font-semibold text-gray-600 flex items-center gap-2 mb-3">
+                  <UserPlus size={14} className="text-indigo-500" />
                   Add New User
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -207,21 +194,21 @@ export default function AdminPage() {
 
               {/* Feedback */}
               {error && (
-                <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                  <AlertCircle size={16} />
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2.5 rounded-lg text-xs flex items-center gap-2">
+                  <AlertCircle size={14} />
                   {error}
                 </div>
               )}
               {success && (
-                <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                  <CheckCircle2 size={16} />
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2.5 rounded-lg text-xs flex items-center gap-2">
+                  <CheckCircle2 size={14} />
                   {success}
                 </div>
               )}
 
               {/* User list */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                <h3 className="text-xs font-semibold text-gray-600 mb-2">
                   Authorized Users ({users.length})
                 </h3>
                 {loading ? (
@@ -233,7 +220,7 @@ export default function AdminPage() {
                     No users yet. Add one above.
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-50 border border-gray-100 rounded-xl overflow-hidden">
+                  <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden">
                     {users.map((u) => (
                       <div
                         key={u.email}

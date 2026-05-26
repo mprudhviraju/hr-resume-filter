@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { AnalysisResults } from '../types';
-import { CheckCircle2, XCircle, Star, RotateCcw, Mail, Phone, Briefcase, GraduationCap } from 'lucide-react';
+import { CheckCircle2, XCircle, Star, RotateCcw, Mail, Phone, Briefcase, GraduationCap, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { StatCards, type StatCardItem } from './StatCards';
 
 interface ResultsDisplayProps {
   results: AnalysisResults;
@@ -9,195 +11,260 @@ interface ResultsDisplayProps {
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => {
   const { shortlisted, notShortlisted, summary } = results;
   const total = shortlisted.length + notShortlisted.length;
+  const [showNotShortlisted, setShowNotShortlisted] = useState(false);
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+
+  const stats: StatCardItem[] = [
+    { label: 'Total Candidates', value: total, color: 'blue', icon: Info, subtitle: 'Resumes analyzed' },
+    { label: 'Shortlisted', value: shortlisted.length, color: 'green', subtitle: 'Recommended candidates' },
+    { label: 'Not Shortlisted', value: notShortlisted.length, color: 'red', subtitle: 'Did not meet criteria' },
+    {
+      label: 'Avg Match Score',
+      value: total > 0
+        ? `${Math.round([...shortlisted, ...notShortlisted].reduce((s, c) => s + c.matchScore, 0) / total)}%`
+        : '—',
+      color: 'amber',
+      subtitle: 'Across all candidates',
+    },
+  ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Stats bar */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Analysis Results</h2>
-            <p className="text-sm text-gray-400 mt-0.5">{total} candidate{total !== 1 ? 's' : ''} analyzed</p>
-          </div>
-          <button
-            onClick={onReset}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            <RotateCcw size={16} />
-            New Analysis
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-3 mt-5">
-          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-3">
-            <div className="bg-emerald-100 p-2 rounded-lg">
-              <CheckCircle2 size={20} className="text-emerald-600" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-emerald-700">{shortlisted.length}</div>
-              <div className="text-xs text-emerald-500 font-medium">Shortlisted</div>
-            </div>
-          </div>
-          <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex items-center gap-3">
-            <div className="bg-gray-100 p-2 rounded-lg">
-              <XCircle size={20} className="text-gray-400" />
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-gray-700">{notShortlisted.length}</div>
-              <div className="text-xs text-gray-400 font-medium">Not Shortlisted</div>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-4">
+      {/* Stats */}
+      <StatCards items={stats} />
+
+      {/* Toolbar */}
+      <div className="bg-white rounded-lg border border-gray-200 px-4 py-2.5 flex items-center justify-between">
+        <span className="text-xs text-gray-500">{total} candidate{total !== 1 ? 's' : ''} analyzed</span>
+        <button
+          onClick={onReset}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+        >
+          <RotateCcw size={13} />
+          New Analysis
+        </button>
       </div>
 
-      {/* Summary */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">Executive Summary</h3>
+      {/* Executive Summary */}
+      <div className="bg-white rounded-lg border border-gray-200 p-5">
+        <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Executive Summary</h3>
         <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{summary}</p>
       </div>
 
-      {/* Shortlisted */}
+      {/* Shortlisted table */}
       {shortlisted.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-500" />
-            Shortlisted Candidates ({shortlisted.length})
-          </h3>
-          <div className="space-y-4">
-            {shortlisted.map((candidate, index) => (
-              <CandidateCard key={index} candidate={candidate} isShortlisted />
-            ))}
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-200 bg-[#f5f6f8] flex items-center gap-2">
+            <CheckCircle2 size={14} className="text-emerald-500" />
+            <span className="text-xs font-semibold text-gray-700">Shortlisted Candidates ({shortlisted.length})</span>
           </div>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Candidate</th>
+                <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Experience</th>
+                <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-center">Match</th>
+                <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {shortlisted.map((c, i) => (
+                <CandidateRow
+                  key={i}
+                  candidate={c}
+                  isShortlisted
+                  expanded={expandedIdx === i}
+                  onToggle={() => setExpandedIdx(expandedIdx === i ? null : i)}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Not Shortlisted */}
+      {/* Not shortlisted table */}
       {notShortlisted.length > 0 && (
-        <details className="group">
-          <summary className="text-sm font-semibold text-gray-600 cursor-pointer flex items-center gap-2 mb-3 select-none">
-            <XCircle size={16} className="text-gray-400" />
-            Not Shortlisted ({notShortlisted.length})
-            <span className="text-xs text-gray-400 font-normal ml-1">click to expand</span>
-          </summary>
-          <div className="space-y-4">
-            {notShortlisted.map((candidate, index) => (
-              <CandidateCard key={index} candidate={candidate} isShortlisted={false} />
-            ))}
-          </div>
-        </details>
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowNotShortlisted(!showNotShortlisted)}
+            className="w-full px-4 py-3 bg-[#f5f6f8] flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <XCircle size={14} className="text-gray-400" />
+              <span className="text-xs font-semibold text-gray-600">Not Shortlisted ({notShortlisted.length})</span>
+            </div>
+            {showNotShortlisted ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+          </button>
+          {showNotShortlisted && (
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Candidate</th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Experience</th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-center">Match</th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {notShortlisted.map((c, i) => (
+                  <CandidateRow
+                    key={i}
+                    candidate={c}
+                    isShortlisted={false}
+                    expanded={expandedIdx === shortlisted.length + i}
+                    onToggle={() =>
+                      setExpandedIdx(
+                        expandedIdx === shortlisted.length + i ? null : shortlisted.length + i,
+                      )
+                    }
+                  />
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       )}
     </div>
   );
 };
 
-interface CandidateCardProps {
+interface CandidateRowProps {
   candidate: AnalysisResults['shortlisted'][0];
   isShortlisted: boolean;
+  expanded: boolean;
+  onToggle: () => void;
 }
 
-const CandidateCard: React.FC<CandidateCardProps> = ({ candidate, isShortlisted }) => {
+const CandidateRow: React.FC<CandidateRowProps> = ({ candidate, isShortlisted, expanded, onToggle }) => {
+  const scoreColor =
+    candidate.matchScore >= 70 ? 'text-emerald-600 bg-emerald-50 border-emerald-100'
+    : candidate.matchScore >= 40 ? 'text-amber-600 bg-amber-50 border-amber-100'
+    : 'text-gray-500 bg-gray-50 border-gray-200';
+
   return (
-    <div className={`bg-white rounded-2xl border p-5 shadow-sm transition-shadow hover:shadow-md ${
-      isShortlisted ? 'border-emerald-100' : 'border-gray-100'
-    }`}>
-      {/* Header row */}
-      <div className="flex justify-between items-start gap-4 mb-4">
-        <div className="min-w-0">
-          <h4 className="text-base font-bold text-gray-900 truncate">
+    <>
+      <tr
+        className="hover:bg-indigo-50/30 transition-colors cursor-pointer"
+        onClick={onToggle}
+      >
+        <td className="px-4 py-3">
+          <div className="text-sm font-medium text-gray-800">
             {candidate.extractedInfo.name || candidate.fileName}
-          </h4>
-          {candidate.extractedInfo.name && (
-            <p className="text-xs text-gray-400 truncate">{candidate.fileName}</p>
-          )}
-        </div>
-        <div className="flex-shrink-0 text-center">
-          <div className={`text-xl font-extrabold ${
-            candidate.matchScore >= 70 ? 'text-emerald-600' :
-            candidate.matchScore >= 40 ? 'text-amber-500' : 'text-gray-400'
-          }`}>
-            {candidate.matchScore}%
           </div>
-          <div className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Match</div>
-        </div>
-      </div>
+          {candidate.extractedInfo.name && (
+            <div className="text-[11px] text-gray-400">{candidate.fileName}</div>
+          )}
+        </td>
+        <td className="px-4 py-3 text-xs text-gray-500">
+          {candidate.extractedInfo.experience || '—'}
+        </td>
+        <td className="px-4 py-3 text-center">
+          <span className={`inline-block px-2.5 py-0.5 rounded text-xs font-bold border ${scoreColor}`}>
+            {candidate.matchScore}%
+          </span>
+        </td>
+        <td className="px-4 py-3">
+          {isShortlisted ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100">
+              <CheckCircle2 size={10} /> Shortlisted
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-500 border border-red-100">
+              <XCircle size={10} /> Not Selected
+            </span>
+          )}
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            {candidate.extractedInfo.email && (
+              <span className="flex items-center gap-1 truncate max-w-[150px]">
+                <Mail size={11} className="text-gray-300 shrink-0" />
+                {candidate.extractedInfo.email}
+              </span>
+            )}
+            {candidate.extractedInfo.phone && (
+              <span className="flex items-center gap-1">
+                <Phone size={11} className="text-gray-300 shrink-0" />
+                {candidate.extractedInfo.phone}
+              </span>
+            )}
+          </div>
+        </td>
+      </tr>
+      {expanded && (
+        <tr>
+          <td colSpan={5} className="bg-gray-50 px-4 py-4 border-t border-gray-100">
+            <div className="max-w-3xl space-y-3">
+              {/* Info row */}
+              <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                {candidate.extractedInfo.education && (
+                  <span className="flex items-center gap-1">
+                    <GraduationCap size={12} className="text-gray-300" />
+                    {candidate.extractedInfo.education}
+                  </span>
+                )}
+                {candidate.extractedInfo.experience && (
+                  <span className="flex items-center gap-1">
+                    <Briefcase size={12} className="text-gray-300" />
+                    {candidate.extractedInfo.experience}
+                  </span>
+                )}
+              </div>
 
-      {/* Contact info */}
-      {(candidate.extractedInfo.email || candidate.extractedInfo.phone ||
-        candidate.extractedInfo.experience || candidate.extractedInfo.education) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 mb-4 text-xs text-gray-500">
-          {candidate.extractedInfo.email && (
-            <span className="flex items-center gap-1.5 truncate">
-              <Mail size={12} className="text-gray-300 flex-shrink-0" />
-              {candidate.extractedInfo.email}
-            </span>
-          )}
-          {candidate.extractedInfo.phone && (
-            <span className="flex items-center gap-1.5">
-              <Phone size={12} className="text-gray-300 flex-shrink-0" />
-              {candidate.extractedInfo.phone}
-            </span>
-          )}
-          {candidate.extractedInfo.experience && (
-            <span className="flex items-center gap-1.5">
-              <Briefcase size={12} className="text-gray-300 flex-shrink-0" />
-              {candidate.extractedInfo.experience}
-            </span>
-          )}
-          {candidate.extractedInfo.education && (
-            <span className="flex items-center gap-1.5 truncate">
-              <GraduationCap size={12} className="text-gray-300 flex-shrink-0" />
-              {candidate.extractedInfo.education}
-            </span>
-          )}
-        </div>
+              {/* Skills */}
+              {candidate.extractedInfo.skills && candidate.extractedInfo.skills.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {candidate.extractedInfo.skills.map((skill, idx) => (
+                    <span key={idx} className="px-2 py-0.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded text-[11px] font-medium">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Summary */}
+              <p className="text-sm text-gray-600 leading-relaxed">{candidate.summary}</p>
+
+              {/* Reasons */}
+              <div>
+                <h5 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                  {isShortlisted ? 'Why Shortlisted' : 'Why Not Shortlisted'}
+                </h5>
+                <ul className="space-y-0.5 text-xs text-gray-500">
+                  {candidate.reasons.map((reason, idx) => (
+                    <li key={idx} className="flex items-start gap-1.5">
+                      <span className="mt-1.5 block h-1 w-1 rounded-full bg-gray-300 shrink-0" />
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Standout */}
+              {isShortlisted && candidate.standoutFeatures.length > 0 && (
+                <div className="border-t border-gray-200 pt-3">
+                  <h5 className="text-[11px] font-semibold text-amber-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <Star size={11} className="text-amber-400" />
+                    Standout Features
+                  </h5>
+                  <ul className="space-y-0.5 text-xs text-gray-600">
+                    {candidate.standoutFeatures.map((feature, idx) => (
+                      <li key={idx} className="flex items-start gap-1.5">
+                        <span className="mt-1.5 block h-1 w-1 rounded-full bg-amber-300 shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
       )}
-
-      {/* Skills */}
-      {candidate.extractedInfo.skills && candidate.extractedInfo.skills.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {candidate.extractedInfo.skills.map((skill, idx) => (
-            <span key={idx} className="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md text-[11px] font-medium">
-              {skill}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Summary */}
-      <p className="text-sm text-gray-600 leading-relaxed mb-4">{candidate.summary}</p>
-
-      {/* Reasons */}
-      <div className="mb-3">
-        <h5 className="text-xs font-semibold text-gray-700 mb-1.5">
-          {isShortlisted ? 'Why Shortlisted' : 'Why Not Shortlisted'}
-        </h5>
-        <ul className="space-y-1 text-xs text-gray-500">
-          {candidate.reasons.map((reason, idx) => (
-            <li key={idx} className="flex items-start gap-1.5">
-              <span className="mt-1 block h-1 w-1 rounded-full bg-gray-300 flex-shrink-0" />
-              {reason}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Standout */}
-      {isShortlisted && candidate.standoutFeatures.length > 0 && (
-        <div className="border-t border-gray-100 pt-3 mt-3">
-          <h5 className="text-xs font-semibold text-amber-600 mb-1.5 flex items-center gap-1.5">
-            <Star size={12} className="text-amber-400" />
-            Standout Features
-          </h5>
-          <ul className="space-y-1 text-xs text-gray-600">
-            {candidate.standoutFeatures.map((feature, idx) => (
-              <li key={idx} className="flex items-start gap-1.5">
-                <span className="mt-1 block h-1 w-1 rounded-full bg-amber-300 flex-shrink-0" />
-                {feature}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 

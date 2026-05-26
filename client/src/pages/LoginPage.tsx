@@ -9,31 +9,35 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <img
-            src="https://www.mirabeltechnologies.com/wp-content/uploads/2022/05/Mirabel-gold-white-background.png"
-            alt="Mirabel Technologies"
-            className="h-12 w-auto mx-auto mb-6"
-          />
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
-            HR Resume Filter
+    <div className="min-h-screen bg-[#f5f6f8] flex flex-col">
+      {/* Top bar */}
+      <div className="bg-[#2b3544] h-11 flex items-center px-6">
+        <div className="w-7 h-7 bg-indigo-500 rounded flex items-center justify-center text-white text-xs font-extrabold">
+          M
+        </div>
+        <span className="ml-3 text-sm text-gray-300 font-medium">HR Resume Filter</span>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-6">
+          <h1 className="text-xl font-bold text-gray-800">
+            Sign In
           </h1>
-          <p className="mt-2 text-gray-500 text-sm">
+          <p className="mt-1 text-gray-500 text-xs">
             Sign in with your Google account to continue
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-          <div className="flex items-center gap-2 mb-6">
-            <Shield size={18} className="text-indigo-500" />
-            <span className="text-sm font-semibold text-gray-700">Secure Sign-In</span>
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <Shield size={15} className="text-indigo-500" />
+            <span className="text-xs font-semibold text-gray-600">Secure Sign-In</span>
           </div>
 
           {error && (
-            <div className="mb-6 bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
-              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <div className="mb-5 bg-red-50 border border-red-200 text-red-600 px-3 py-2.5 rounded-lg text-xs flex items-start gap-2">
+              <AlertCircle size={14} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -65,12 +69,13 @@ export default function LoginPage() {
             )}
           </div>
 
-          <p className="mt-6 text-center text-xs text-gray-400">
+          <p className="mt-5 text-center text-[11px] text-gray-400">
             Only authorized users can access this application.
             <br />
             Contact your administrator if you need access.
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Save, Eye, EyeOff, CheckCircle2, ArrowLeft, Cloud, CloudOff, Loader2, Key, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Eye, EyeOff, CheckCircle2, Cloud, CloudOff, Loader2, Key, Shield } from 'lucide-react';
 import {
   getStoredApiKey,
   storeApiKey,
@@ -9,13 +8,13 @@ import {
   loadApiKeyFromServer,
   deleteApiKeyFromServer,
 } from '../utils/apiKeyStorage';
+import NavBar from './NavBar';
 
 interface SettingsProps {
   onApiKeySet?: () => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
-  const navigate = useNavigate();
   const [apiKey, setApiKey] = useState<string>('');
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
   const [saved, setSaved] = useState<boolean>(false);
@@ -88,33 +87,18 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8 sm:py-12">
+    <div className="min-h-screen bg-[#f5f6f8]">
+      <NavBar />
+      <div className="px-4 sm:px-6 py-5">
         <div className="max-w-xl mx-auto">
-          {/* Back button */}
-          <button
-            onClick={() => navigate('/')}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            Back to Analyzer
-          </button>
-
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-5 sm:px-8 sm:py-6">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg">
-                  <SettingsIcon className="text-white" size={22} />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-white">Settings</h1>
-                  <p className="text-indigo-200 text-sm mt-0.5">Manage your API configuration</p>
-                </div>
-              </div>
+            <div className="bg-[#f5f6f8] border-b border-gray-200 px-5 py-3 flex items-center gap-2">
+              <SettingsIcon size={16} className="text-gray-500" />
+              <h1 className="text-sm font-semibold text-gray-700">API Configuration</h1>
             </div>
 
-            <div className="p-6 sm:p-8 space-y-6">
+            <div className="p-5 sm:p-6 space-y-5">
               {/* API Key Field */}
               <div>
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-2">
