@@ -128,20 +128,21 @@ export default function HistoryPage() {
   const pageRuns = runs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const stats: StatCardItem[] = [
-    { label: 'Total Runs', value: runs.length, color: 'blue', icon: Info, subtitle: 'Analyses in last 30 days' },
-    { label: 'Total Resumes', value: totalResumes.toLocaleString(), color: 'blue', subtitle: 'Resumes analyzed' },
+    { label: 'Total Runs', value: runs.length, color: 'ocean', icon: Info, subtitle: 'Analyses in last 30 days' },
+    { label: 'Total Resumes', value: totalResumes.toLocaleString(), color: 'ocean', subtitle: 'Resumes analyzed' },
     { label: 'Shortlisted', value: totalShortlisted.toLocaleString(), color: 'green', subtitle: 'Candidates shortlisted' },
     { label: 'Not Shortlisted', value: totalNotShortlisted.toLocaleString(), color: 'red', subtitle: 'Candidates not shortlisted' },
   ];
 
   if (selectedRun) {
     return (
-      <div className="min-h-screen bg-[#f5f6f8]">
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-subtle)' }}>
         <NavBar />
         <div className="px-4 sm:px-6 py-5">
           <button
             onClick={() => setSelectedRun(null)}
-            className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 mb-4 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs hover:text-gray-800 mb-4"
+            style={{ color: 'var(--text-secondary)', transition: `all var(--duration-normal) var(--ease-out)` }}
           >
             <ArrowLeft size={14} />
             Back to History
@@ -179,7 +180,7 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f6f8]">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-subtle)' }}>
       <NavBar />
 
       <div className="px-4 sm:px-6 py-5 space-y-4">
@@ -248,52 +249,56 @@ export default function HistoryPage() {
           ) : (
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-[#f5f6f8] border-b border-gray-200">
-                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Time</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Criteria</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-center">Resumes</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-center">Shortlisted</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-center">Not Shortlisted</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-center">Duration</th>
-                  <th className="px-4 py-2.5 text-[11px] font-semibold text-gray-500 uppercase tracking-wider text-center">Action</th>
+                <tr style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-default)', height: 'var(--table-header-height)' }}>
+                  <th className="px-4 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Date</th>
+                  <th className="px-4 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Time</th>
+                  <th className="px-4 text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Criteria</th>
+                  <th className="px-4 text-[11px] font-semibold uppercase tracking-wider text-center" style={{ color: 'var(--text-secondary)' }}>Resumes</th>
+                  <th className="px-4 text-[11px] font-semibold uppercase tracking-wider text-center" style={{ color: 'var(--text-secondary)' }}>Shortlisted</th>
+                  <th className="px-4 text-[11px] font-semibold uppercase tracking-wider text-center" style={{ color: 'var(--text-secondary)' }}>Not Shortlisted</th>
+                  <th className="px-4 text-[11px] font-semibold uppercase tracking-wider text-center" style={{ color: 'var(--text-secondary)' }}>Duration</th>
+                  <th className="px-4 text-[11px] font-semibold uppercase tracking-wider text-center" style={{ color: 'var(--text-secondary)' }}>Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {pageRuns.map((run) => (
                   <tr
                     key={run.runId}
-                    className="hover:bg-indigo-50/40 transition-colors cursor-pointer"
+                    className="cursor-pointer"
+                    style={{ height: 'var(--table-row-height)', transition: `background var(--duration-normal) var(--ease-out)` }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-ocean-50)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     onClick={() => handleViewRun(run)}
                   >
-                    <td className="px-4 py-3 text-xs text-gray-700 whitespace-nowrap">{formatDate(run.createdAt)}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatTime(run.createdAt)}</td>
-                    <td className="px-4 py-3 text-xs text-gray-700 max-w-xs truncate">{run.criteria}</td>
-                    <td className="px-4 py-3 text-xs text-gray-600 text-center font-medium">{run.totalResumes}</td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                    <td className="px-4 text-sm whitespace-nowrap" style={{ color: 'var(--color-ocean-800)', fontWeight: 600 }}>{formatDate(run.createdAt)}</td>
+                    <td className="px-4 text-xs whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>{formatTime(run.createdAt)}</td>
+                    <td className="px-4 text-xs max-w-xs truncate" style={{ color: 'var(--text-primary)' }}>{run.criteria}</td>
+                    <td className="px-4 text-xs text-center font-medium" style={{ color: 'var(--text-secondary)' }}>{run.totalResumes}</td>
+                    <td className="px-4 text-center">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold" style={{ backgroundColor: 'var(--color-success-50)', color: 'var(--color-success-600)', border: '1px solid var(--color-success-100)' }}>
                         {run.shortlistedCount}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-50 text-red-500 border border-red-100">
+                    <td className="px-4 text-center">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold" style={{ backgroundColor: 'var(--color-error-50)', color: 'var(--color-error-600)', border: '1px solid var(--color-error-100)' }}>
                         {run.notShortlistedCount}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 text-center whitespace-nowrap">
+                    <td className="px-4 text-xs text-center whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
                       <span className="inline-flex items-center gap-1">
                         <Clock size={11} />
                         {formatDuration(run.durationMs)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 text-center">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewRun(run);
                         }}
                         disabled={loadingDetail === run.runId}
-                        className="text-xs px-3 py-1 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-medium transition-colors border border-indigo-100"
+                        className="text-xs px-3 py-1 rounded font-medium"
+                        style={{ backgroundColor: 'var(--color-ocean-50)', color: 'var(--color-ocean-700)', border: '1px solid var(--color-ocean-100)', transition: `all var(--duration-normal) var(--ease-out)` }}
                       >
                         {loadingDetail === run.runId ? (
                           <Loader2 size={12} className="animate-spin inline" />

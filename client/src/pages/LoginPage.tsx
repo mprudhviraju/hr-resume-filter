@@ -9,10 +9,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#f5f6f8] flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-subtle)' }}>
       {/* Top bar */}
-      <div className="bg-[#2b3544] h-11 flex items-center px-6">
-        <div className="w-7 h-7 bg-indigo-500 rounded flex items-center justify-center text-white text-xs font-extrabold">
+      <div className="flex items-center px-6" style={{ backgroundColor: 'var(--color-gray-800)', height: '44px' }}>
+        <div className="rounded flex items-center justify-center text-white text-xs font-extrabold" style={{ width: 28, height: 28, backgroundColor: 'var(--color-ocean-600)' }}>
           M
         </div>
         <span className="ml-3 text-sm text-gray-300 font-medium">HR Resume Filter</span>

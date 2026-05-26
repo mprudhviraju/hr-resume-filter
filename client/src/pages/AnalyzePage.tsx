@@ -335,17 +335,17 @@ function AnalyzePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#f5f6f8]">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-subtle)' }}>
       <NavBar />
 
       <div className="px-4 sm:px-6 py-5">
         {!results ? (
           <div className="max-w-4xl mx-auto space-y-4">
             {/* Step 1 — Upload */}
-            <div className="bg-white rounded-lg border border-gray-200 p-5">
+            <div className="rounded-lg p-5" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}>
               <div className="flex items-center gap-2 mb-3">
-                <span className="flex items-center justify-center w-5 h-5 rounded bg-indigo-100 text-indigo-600 text-[10px] font-bold">1</span>
-                <h2 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Upload Resumes</h2>
+                <span className="flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold" style={{ backgroundColor: 'var(--color-ocean-50)', color: 'var(--color-ocean-700)' }}>1</span>
+                <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-ocean-600)' }}>Upload Resumes</h2>
               </div>
               <FolderSelector
                 showServerFolderPath={SHOW_SERVER_FOLDER_PATH}
@@ -368,10 +368,10 @@ function AnalyzePage() {
             </div>
 
             {/* Step 2 — Criteria */}
-            <div className="bg-white rounded-lg border border-gray-200 p-5">
+            <div className="rounded-lg p-5" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}>
               <div className="flex items-center gap-2 mb-3">
-                <span className="flex items-center justify-center w-5 h-5 rounded bg-indigo-100 text-indigo-600 text-[10px] font-bold">2</span>
-                <h2 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Define Criteria</h2>
+                <span className="flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold" style={{ backgroundColor: 'var(--color-ocean-50)', color: 'var(--color-ocean-700)' }}>2</span>
+                <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-ocean-600)' }}>Define Criteria</h2>
               </div>
               <CriteriaInput
                 criteria={criteria}
@@ -390,7 +390,11 @@ function AnalyzePage() {
               <button
                 onClick={handleAnalyze}
                 disabled={loading || (!folderPath && uploadedFiles.length === 0) || !criteria}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg shadow-sm hover:shadow transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+                className="w-full disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-8 rounded-lg shadow-sm hover:shadow flex items-center justify-center gap-2 text-sm"
+                style={{
+                  backgroundColor: (!loading && (folderPath || uploadedFiles.length > 0) && criteria) ? 'var(--color-ocean-600)' : undefined,
+                  transition: `all var(--duration-normal) var(--ease-out)`,
+                }}
               >
                 {loading ? (
                   <>

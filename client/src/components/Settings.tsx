@@ -87,7 +87,7 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f6f8]">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-subtle)' }}>
       <NavBar />
       <div className="px-4 sm:px-6 py-5">
         <div className="max-w-xl mx-auto">
@@ -101,8 +101,8 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
             <div className="p-5 sm:p-6 space-y-5">
               {/* API Key Field */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-2">
-                  <Key size={15} className="text-indigo-500" />
+                <label className="flex items-center gap-2 text-sm font-semibold mb-2" style={{ color: 'var(--label-color)' }}>
+                  <Key size={15} style={{ color: 'var(--color-ocean-500)' }} />
                   OpenAI API Key
                 </label>
                 <div className="relative">

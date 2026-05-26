@@ -26,12 +26,15 @@ export default function NavBar() {
   ];
 
   return (
-    <nav className="bg-[#2b3544] text-white sticky top-0 z-50">
+    <nav style={{ backgroundColor: 'var(--color-gray-800)' }} className="text-white sticky top-0 z-50">
       <div className="px-4 sm:px-6">
-        <div className="flex items-center h-11">
+        <div className="flex items-center" style={{ height: '44px' }}>
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 mr-6 shrink-0">
-            <div className="w-7 h-7 bg-indigo-500 rounded flex items-center justify-center text-white text-xs font-extrabold">
+            <div
+              className="rounded flex items-center justify-center text-white text-xs font-extrabold"
+              style={{ width: 28, height: 28, backgroundColor: 'var(--color-ocean-600)' }}
+            >
               M
             </div>
           </Link>
@@ -47,11 +50,26 @@ export default function NavBar() {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition-colors ${
-                    isActive
-                      ? 'bg-white/15 text-white'
-                      : 'text-gray-300 hover:bg-white/10 hover:text-white'
-                  }`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded whitespace-nowrap"
+                  style={{
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                    transition: `all var(--duration-normal) var(--ease-out)`,
+                    backgroundColor: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: isActive ? 'white' : 'var(--color-gray-300)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                      e.currentTarget.style.color = 'white';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = 'var(--color-gray-300)';
+                    }
+                  }}
                 >
                   <Icon size={14} />
                   {item.label}
@@ -64,20 +82,40 @@ export default function NavBar() {
           <div className="ml-auto flex items-center gap-3 shrink-0">
             {user && (
               <div className="hidden sm:flex items-center gap-2">
-                <div className="w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-800">
+                <div
+                  className="rounded-full flex items-center justify-center font-bold"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    fontSize: '0.625rem',
+                    backgroundColor: 'var(--color-warning-500)',
+                    color: 'var(--color-gray-800)',
+                  }}
+                >
                   {(user.name || user.email).charAt(0).toUpperCase()}
                 </div>
-                <span className="text-xs text-gray-300 max-w-[140px] truncate">
+                <span style={{ fontSize: '0.75rem', color: 'var(--color-gray-300)' }} className="max-w-[140px] truncate">
                   {user.name || user.email}
                 </span>
-                {isAdmin && (
-                  <Shield size={12} className="text-amber-400" />
-                )}
+                {isAdmin && <Shield size={12} style={{ color: 'var(--color-warning-500)' }} />}
               </div>
             )}
             <button
               onClick={logout}
-              className="flex items-center gap-1 px-2 py-1.5 rounded text-xs text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="flex items-center gap-1 px-2 py-1.5 rounded"
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--color-gray-400)',
+                transition: `all var(--duration-normal) var(--ease-out)`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'white';
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--color-gray-400)';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
               title="Sign out"
             >
               <LogOut size={14} />
@@ -87,9 +125,9 @@ export default function NavBar() {
         </div>
       </div>
 
-      {/* Sub-nav / breadcrumb bar */}
-      <div className="bg-[#f5f6f8] border-b border-gray-200 px-4 sm:px-6">
-        <div className="flex items-center h-9 gap-3 text-xs overflow-x-auto">
+      {/* Sub-nav breadcrumb */}
+      <div style={{ backgroundColor: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-default)' }} className="px-4 sm:px-6">
+        <div className="flex items-center gap-3 overflow-x-auto" style={{ height: '36px', fontSize: '0.75rem' }}>
           {allItems.map((item) => {
             const isActive = item.to === '/'
               ? pathname === '/'
@@ -98,11 +136,13 @@ export default function NavBar() {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap transition-colors ${
-                  isActive
-                    ? 'text-indigo-600 font-semibold bg-indigo-50'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+                className="flex items-center gap-1 px-2 py-1 rounded whitespace-nowrap"
+                style={{
+                  transition: `all var(--duration-normal) var(--ease-out)`,
+                  color: isActive ? 'var(--color-ocean-700)' : 'var(--color-gray-500)',
+                  fontWeight: isActive ? 600 : 400,
+                  backgroundColor: isActive ? 'var(--color-ocean-50)' : 'transparent',
+                }}
               >
                 {item.label}
               </Link>

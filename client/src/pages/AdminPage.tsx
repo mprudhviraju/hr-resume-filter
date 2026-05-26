@@ -118,7 +118,7 @@ export default function AdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[#f5f6f8]">
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-subtle)' }}>
         <NavBar />
         <div className="flex items-center justify-center py-20">
           <div className="bg-white rounded-lg border border-gray-200 p-8 text-center max-w-sm">
@@ -138,7 +138,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f6f8]">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-subtle)' }}>
       <NavBar />
       <div className="px-4 sm:px-6 py-5">
         <div className="max-w-2xl mx-auto">

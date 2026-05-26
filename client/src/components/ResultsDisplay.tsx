@@ -15,7 +15,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => 
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   const stats: StatCardItem[] = [
-    { label: 'Total Candidates', value: total, color: 'blue', icon: Info, subtitle: 'Resumes analyzed' },
+    { label: 'Total Candidates', value: total, color: 'ocean', icon: Info, subtitle: 'Resumes analyzed' },
     { label: 'Shortlisted', value: shortlisted.length, color: 'green', subtitle: 'Recommended candidates' },
     { label: 'Not Shortlisted', value: notShortlisted.length, color: 'red', subtitle: 'Did not meet criteria' },
     {
@@ -54,9 +54,9 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, onReset }) => 
       {/* Shortlisted table */}
       {shortlisted.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-200 bg-[#f5f6f8] flex items-center gap-2">
-            <CheckCircle2 size={14} className="text-emerald-500" />
-            <span className="text-xs font-semibold text-gray-700">Shortlisted Candidates ({shortlisted.length})</span>
+          <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border-default)', backgroundColor: 'var(--bg-subtle)' }}>
+            <CheckCircle2 size={14} style={{ color: 'var(--color-success-500)' }} />
+            <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Shortlisted Candidates ({shortlisted.length})</span>
           </div>
           <table className="w-full text-left">
             <thead>
