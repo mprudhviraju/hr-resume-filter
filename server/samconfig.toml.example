@@ -1,0 +1,16 @@
+# Copy to samconfig.toml and adjust, then: sam deploy
+
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "hr-resume-filter-api"
+resolve_s3 = true
+s3_prefix = "hr-resume-filter-api"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "AllowedOrigins=\"*\" OpenAIApiKey=\"\" OpenAIModel=\"\""
+
+[default.build.parameters]
+cached = true
+parallel = true

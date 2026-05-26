@@ -1,3 +1,6 @@
+.env
+.aws-sam
+samconfig.toml
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*

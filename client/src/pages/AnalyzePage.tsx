@@ -23,6 +23,18 @@ interface LastJobSummary {
   finishedAt: string;
 }
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+const SHOW_SERVER_FOLDER_PATH =
+  import.meta.env.VITE_ENABLE_FOLDER_PATH === 'true';
+
+/** Same-origin `/api` in dev (Vite proxy) or explicit API host in production */
+function resolveApiUrl(pathWithLeadingSlash: string): string {
+  const path = pathWithLeadingSlash.startsWith('/')
+    ? pathWithLeadingSlash
+    : `/${pathWithLeadingSlash}`;
+  return API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+}
+
 function AnalyzePage() {
   const [folderPath, setFolderPath] = useState<string>('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -89,11 +101,6 @@ function AnalyzePage() {
     setIsStatusPanelCollapsed(false);
 
     try {
-      // #region agent log
-      console.log('DEBUG: Starting analyze request');
-      fetch('http://127.0.0.1:7242/ingest/2901d96b-8f49-4242-aa1e-7362b9a3280e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AnalyzePage.tsx:47',message:'handleAnalyze starting',data:{hasFolderPath:!!folderPath.trim(),uploadedFilesCount:uploadedFiles.length,hasCriteria:!!criteria.trim()},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-
       const formData = new FormData();
       
       // Add uploaded files if any
@@ -112,11 +119,7 @@ function AnalyzePage() {
       // Add API key to form data (more reliable than headers with FormData)
       formData.append('apiKey', apiKey);
 
-      const apiUrl = '/api/analyze';
-      // #region agent log
-      console.log('DEBUG: About to fetch from:', apiUrl);
-      fetch('http://127.0.0.1:7242/ingest/2901d96b-8f49-4242-aa1e-7362b9a3280e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AnalyzePage.tsx:66',message:'About to fetch',data:{url:apiUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      const apiUrl = resolveApiUrl('/api/analyze');
 
       // Step 1: create job
       const response = await fetch(apiUrl, {
@@ -125,17 +128,29 @@ function AnalyzePage() {
       });
 
       if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { error: `Server returned ${response.status} ${response.statusText}` };
+        const bodyText = await response.text();
+        let parsed: { error?: string; message?: string } = {};
+        if (bodyText) {
+          try {
+            parsed = JSON.parse(bodyText) as typeof parsed;
+          } catch {
+            /* non‑JSON bodies (proxy HTML, empty, etc.) */
+          }
         }
-        console.error('DEBUG: Job creation failed:', errorData);
-        throw new Error(errorData.error || 'Failed to start analysis');
+        const trimmed = bodyText?.trim()?.slice(0, 600) ?? '';
+        const detail =
+          parsed.message ||
+          parsed.error ||
+          (trimmed && !trimmed.startsWith('<')
+            ? trimmed
+            : `Server returned ${response.status} ${response.statusText}${trimmed.startsWith('<') ? ' — check that the backend is running and the API URL/port matches vite.config.ts' : ''}`);
+        throw new Error(detail);
       }
 
-      const { jobId, totalResumes } = await response.json();
+      const { jobId, totalResumes } = (await response.json()) as {
+        jobId: string;
+        totalResumes?: number;
+      };
 
       if (!jobId) {
         throw new Error('Job ID missing from server response');
@@ -144,7 +159,7 @@ function AnalyzePage() {
       setCurrentJobId(jobId);
 
       // Step 2: open SSE stream for progress & final results
-      const streamUrl = `/api/analyze/${jobId}/stream`;
+      const streamUrl = resolveApiUrl(`/api/analyze/${jobId}/stream`);
       const es = new EventSource(streamUrl);
       eventSourceRef.current = es;
 
@@ -280,18 +295,6 @@ function AnalyzePage() {
         eventSourceRef.current = null;
       });
     } catch (err: any) {
-      // #region agent log
-      const errorDetails = {
-        name: err?.name,
-        message: err?.message,
-        stack: err?.stack?.substring(0,300),
-        type: typeof err,
-        isNetworkError: err?.message?.includes('fetch') || err?.message?.includes('Failed to fetch'),
-        isTypeError: err?.name === 'TypeError'
-      };
-      console.error('DEBUG: Error caught:', errorDetails);
-      fetch('http://127.0.0.1:7242/ingest/2901d96b-8f49-4242-aa1e-7362b9a3280e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AnalyzePage.tsx:95',message:'Error caught',data:errorDetails,timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'F'})}).catch(()=>{});
-      // #endregion
       setError(err.message || 'An error occurred while analyzing resumes');
     } finally {
       setLoading(false);
@@ -360,6 +363,7 @@ function AnalyzePage() {
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
               <FolderSelector
+                showServerFolderPath={SHOW_SERVER_FOLDER_PATH}
                 folderPath={folderPath}
                 onFolderChange={setFolderPath}
                 onFilesSelected={handleFilesSelected}

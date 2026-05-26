@@ -1,0 +1,141 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: HR Resume Filter API (Lambda + HTTP API + DynamoDB)
+
+Parameters:
+  AllowedOrigins:
+    Type: String
+    Default: '*'
+    Description: >-
+      Comma-separated CORS origins (e.g. https://main.xxxx.amplifyapp.com).
+      Use * for development only.
+  OpenAIApiKey:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: >-
+      Optional default OpenAI API key (users can also send X-OpenAI-API-Key).
+      Leave empty if the client always supplies a key.
+  OpenAIModel:
+    Type: String
+    Default: ''
+    Description: Optional OpenAI model id (default gpt-4o when empty)
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        NODE_ENV: production
+        JOB_TABLE_NAME: !Ref JobsTable
+        ALLOWED_ORIGINS: !Ref AllowedOrigins
+        OPENAI_API_KEY: !Ref OpenAIApiKey
+        OPENAI_MODEL: !Ref OpenAIModel
+
+Resources:
+  JobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-jobs'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: jobId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: jobId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - X-OpenAI-API-Key
+        MaxAge: 600
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Health check and create analysis jobs
+      Handler: lambda/api.handler
+      CodeUri: .
+      MemorySize: 1024
+      Timeout: 60
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+      Events:
+        Health:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/health
+            Method: GET
+        CreateJob:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/analyze
+            Method: POST
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - src/lambda/api.ts
+
+  StreamFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: SSE stream for resume analysis progress and results
+      Handler: lambda/stream.handler
+      CodeUri: .
+      MemorySize: 2048
+      Timeout: 900
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref JobsTable
+      Events:
+        StreamJob:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/analyze/{jobId}/stream
+            Method: GET
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - src/lambda/stream.ts
+
+Outputs:
+  HttpApiUrl:
+    Description: API base URL — set as VITE_API_BASE_URL in Amplify
+    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  JobsTableName:
+    Description: DynamoDB jobs table
+    Value: !Ref JobsTable
+  ApiFunctionArn:
+    Description: Create-job Lambda ARN
+    Value: !GetAtt ApiFunction.Arn
+  StreamFunctionArn:
+    Description: SSE stream Lambda ARN
+    Value: !GetAtt StreamFunction.Arn

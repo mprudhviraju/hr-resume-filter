@@ -5,12 +5,15 @@ interface FolderSelectorProps {
   folderPath: string;
   onFolderChange: (path: string) => void;
   onFilesSelected?: (files: FileList | null) => void;
+  /** Server-side folder path — local/dev only; hidden on Amplify by default */
+  showServerFolderPath?: boolean;
 }
 
 const FolderSelector: React.FC<FolderSelectorProps> = ({
   folderPath,
   onFolderChange,
   onFilesSelected,
+  showServerFolderPath = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,38 +66,43 @@ const FolderSelector: React.FC<FolderSelectorProps> = ({
           </button>
         </div>
 
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">OR</span>
-          </div>
-        </div>
+        {showServerFolderPath && (
+          <>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">OR</span>
+              </div>
+            </div>
 
-        {/* Server Folder Path Option */}
-        <div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={folderPath}
-              onChange={(e) => onFolderChange(e.target.value)}
-              placeholder="Enter server-side folder path (for server environments)"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
-            <button
-              onClick={handleFolderSelect}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2"
-            >
-              <FolderOpen size={20} />
-              Browse
-            </button>
-          </div>
-        </div>
+            <div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={folderPath}
+                  onChange={(e) => onFolderChange(e.target.value)}
+                  placeholder="Enter server-side folder path (local dev only)"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={handleFolderSelect}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2"
+                >
+                  <FolderOpen size={20} />
+                  Browse
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
       <p className="mt-2 text-sm text-gray-500">
-        Upload multiple resume files or provide a server-side folder path
+        {showServerFolderPath
+          ? 'Upload multiple resume files or provide a server-side folder path'
+          : 'Upload multiple resume files (PDF, DOC, DOCX)'}
       </p>
     </div>
   );

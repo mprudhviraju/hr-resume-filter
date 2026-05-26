@@ -47,10 +47,14 @@ The client will run on http://localhost:3000 and the server on http://localhost:
 
 **Note**: DOC files require additional tools. It's recommended to convert them to DOCX or PDF format.
 
+## Deploy to AWS
+
+See **[DEPLOY.md](./DEPLOY.md)** for Amplify Hosting (frontend) and Lambda + API Gateway (backend).
+
 ## Technology Stack
 
 - **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
-- **Backend**: Node.js + Express + TypeScript
+- **Backend**: Node.js + Express + TypeScript (local) / AWS Lambda + DynamoDB (production)
 - **AI**: OpenAI GPT-4 API
 - **Resume Parsing**: pdf-parse, mammoth
 
