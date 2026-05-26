@@ -8,6 +8,7 @@ import multer from 'multer';
 import { parseResumeFolder, parseUploadedFiles } from './services/resumeParser';
 import { pipeAnalysisStreamToWritable } from './services/analysisStream';
 import { getJobStore, jobExpiresAt } from './store/jobStore';
+import { getSettingsStore } from './store/settingsStore';
 import { isOriginAllowed, parseAllowedOrigins } from './utils/cors';
 
 const isLambda = Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME);
@@ -52,6 +53,47 @@ export function createApp(): express.Application {
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', message: 'HR Resume Filter API is running' });
+  });
+
+  // --- Settings: server-stored OpenAI API key ---
+
+  app.get('/api/settings/api-key', async (_req, res) => {
+    try {
+      const key = await getSettingsStore().getApiKey();
+      if (!key) {
+        return res.json({ apiKey: null });
+      }
+      const masked =
+        key.slice(0, 7) + '*'.repeat(Math.max(0, key.length - 11)) + key.slice(-4);
+      res.json({ apiKey: masked, hasKey: true });
+    } catch (error: unknown) {
+      console.error('Error loading API key:', error);
+      res.status(500).json({ error: 'Failed to load API key' });
+    }
+  });
+
+  app.put('/api/settings/api-key', async (req, res) => {
+    try {
+      const { apiKey } = req.body;
+      if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim()) {
+        return res.status(400).json({ error: 'API key is required' });
+      }
+      await getSettingsStore().setApiKey(apiKey.trim());
+      res.json({ success: true });
+    } catch (error: unknown) {
+      console.error('Error saving API key:', error);
+      res.status(500).json({ error: 'Failed to save API key' });
+    }
+  });
+
+  app.delete('/api/settings/api-key', async (_req, res) => {
+    try {
+      await getSettingsStore().deleteApiKey();
+      res.json({ success: true });
+    } catch (error: unknown) {
+      console.error('Error deleting API key:', error);
+      res.status(500).json({ error: 'Failed to delete API key' });
+    }
   });
 
   const uploadResumes = upload.array('resumes', 50);

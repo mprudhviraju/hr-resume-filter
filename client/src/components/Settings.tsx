@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Save, Eye, EyeOff, CheckCircle2, ArrowLeft } from 'lucide-react';
-import { getStoredApiKey, storeApiKey } from '../utils/apiKeyStorage';
+import { Settings as SettingsIcon, Save, Eye, EyeOff, CheckCircle2, ArrowLeft, Cloud, Loader2 } from 'lucide-react';
+import {
+  getStoredApiKey,
+  storeApiKey,
+  removeApiKey,
+  saveApiKeyToServer,
+  loadApiKeyFromServer,
+  deleteApiKeyFromServer,
+} from '../utils/apiKeyStorage';
 
 interface SettingsProps {
   onApiKeySet?: () => void;
@@ -13,16 +20,30 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
   const [saved, setSaved] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [serverKeyStatus, setServerKeyStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load existing API key if available
     const stored = getStoredApiKey();
     if (stored) {
       setApiKey(stored);
     }
+
+    loadApiKeyFromServer()
+      .then(({ apiKey: maskedKey, hasKey }) => {
+        if (hasKey && maskedKey) {
+          setServerKeyStatus(maskedKey);
+          if (!stored) {
+            setApiKey(maskedKey);
+          }
+        }
+      })
+      .catch(() => {
+        /* server unavailable — localStorage only */
+      });
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setError('');
     setSaved(false);
 
@@ -31,23 +52,32 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
       return;
     }
 
-    // Basic validation - OpenAI API keys typically start with 'sk-'
     if (!apiKey.startsWith('sk-')) {
       setError('Invalid API key format. OpenAI API keys typically start with "sk-"');
       return;
     }
 
+    setLoading(true);
     try {
       storeApiKey(apiKey.trim());
-      setSaved(true);
-      if (onApiKeySet) {
-        onApiKeySet();
+
+      await saveApiKeyToServer(apiKey.trim());
+
+      const { apiKey: maskedKey } = await loadApiKeyFromServer();
+      if (maskedKey) {
+        setServerKeyStatus(maskedKey);
       }
-      
-      // Clear success message after 3 seconds
+
+      setSaved(true);
+      onApiKeySet?.();
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
-      setError('Failed to save API key. Please try again.');
+      storeApiKey(apiKey.trim());
+      setSaved(true);
+      setError('Saved locally but failed to sync to server. It may not persist across browsers.');
+      setTimeout(() => setSaved(false), 3000);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,10 +85,17 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
     navigate('/');
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     setApiKey('');
     setError('');
     setSaved(false);
+    setServerKeyStatus(null);
+    removeApiKey();
+    try {
+      await deleteApiKeyFromServer();
+    } catch {
+      /* best effort */
+    }
   };
 
   return (
@@ -105,8 +142,16 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
                     {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+
+                {serverKeyStatus && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-green-700">
+                    <Cloud size={16} />
+                    <span>Stored on server: {serverKeyStatus}</span>
+                  </div>
+                )}
+
                 <p className="mt-2 text-sm text-gray-500">
-                  Your API key is stored locally in your browser and never sent to our servers except for API calls to OpenAI.
+                  Your API key is saved on the server so it persists across browsers and sessions.
                   Get your API key from{' '}
                   <a
                     href="https://platform.openai.com/api-keys"
@@ -135,10 +180,11 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
               <div className="flex gap-3">
                 <button
                   onClick={handleSave}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transition-colors duration-200 flex items-center justify-center gap-2"
                 >
-                  <Save size={20} />
-                  Save API Key
+                  {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                  {loading ? 'Saving...' : 'Save API Key'}
                 </button>
                 <button
                   onClick={handleClear}
@@ -154,25 +200,19 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
                 </h3>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-indigo-600 mt-1">&bull;</span>
                     <span>
-                      Your API key is stored only in your browser's localStorage
+                      Your API key is stored on the server and in your browser for convenience
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-indigo-600 mt-1">&bull;</span>
                     <span>
                       The API key is sent directly to OpenAI's servers for resume analysis
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-indigo-600 mt-1">•</span>
-                    <span>
-                      We do not store or log your API key on our servers
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-indigo-600 mt-1">•</span>
+                    <span className="text-indigo-600 mt-1">&bull;</span>
                     <span>
                       You can clear your API key at any time by clicking the Clear button
                     </span>
@@ -188,4 +228,3 @@ const Settings: React.FC<SettingsProps> = ({ onApiKeySet }) => {
 };
 
 export default Settings;
-

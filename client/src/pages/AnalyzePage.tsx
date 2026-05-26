@@ -5,7 +5,7 @@ import FolderSelector from '../components/FolderSelector';
 import CriteriaInput from '../components/CriteriaInput';
 import ResultsDisplay from '../components/ResultsDisplay';
 import { AnalysisResults } from '../types';
-import { getStoredApiKey } from '../utils/apiKeyStorage';
+import { getStoredApiKey, loadApiKeyFromServer } from '../utils/apiKeyStorage';
 import { JobHistoryItem, loadJobHistory, saveJobHistory } from '../utils/jobHistoryStorage';
 
 interface ProgressState {
@@ -82,10 +82,20 @@ function AnalyzePage() {
       return;
     }
 
-    const apiKey = getStoredApiKey();
+    let apiKey = getStoredApiKey();
     if (!apiKey) {
-      setError('Please configure your OpenAI API key in Settings first');
-      return;
+      try {
+        const serverKey = await loadApiKeyFromServer();
+        if (!serverKey.hasKey) {
+          setError('Please configure your OpenAI API key in Settings first');
+          return;
+        }
+        // Server has the key — send without it; the server will use its stored copy
+        apiKey = null;
+      } catch {
+        setError('Please configure your OpenAI API key in Settings first');
+        return;
+      }
     }
 
     // Reset state before starting
@@ -117,8 +127,9 @@ function AnalyzePage() {
       // Add criteria
       formData.append('criteria', criteria);
       
-      // Add API key to form data (more reliable than headers with FormData)
-      formData.append('apiKey', apiKey);
+      if (apiKey) {
+        formData.append('apiKey', apiKey);
+      }
 
       const apiUrl = resolveApiUrl('/api/analyze');
 

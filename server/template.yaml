@@ -90,6 +90,24 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /api/analyze
             Method: POST
+        GetApiKey:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/settings/api-key
+            Method: GET
+        PutApiKey:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/settings/api-key
+            Method: PUT
+        DeleteApiKey:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/settings/api-key
+            Method: DELETE
     Metadata:
       BuildMethod: esbuild
       BuildProperties:

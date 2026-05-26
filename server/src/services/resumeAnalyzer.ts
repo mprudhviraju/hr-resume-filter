@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { ParsedResume } from './resumeParser';
 import { getDefaultOpenAIKey } from '../config/openaiKeyStore';
+import { getSettingsStore } from '../store/settingsStore';
 
 /** Read at call time so server/.env is loaded before first request (`dotenv` runs after imports in index.ts). */
 function resolveChatModel(): string {
@@ -9,14 +10,17 @@ function resolveChatModel(): string {
 
 /**
  * Get OpenAI client instance (lazy initialization).
- * Priority: explicit API key from request > PostgreSQL-stored key > environment variable.
+ * Priority: explicit API key from request > DynamoDB-stored key > PostgreSQL-stored key > environment variable.
  */
 async function getOpenAIClient(apiKeyFromRequest?: string): Promise<OpenAI> {
-  const apiKey = apiKeyFromRequest || (await getDefaultOpenAIKey());
+  const apiKey =
+    apiKeyFromRequest ||
+    (await getSettingsStore().getApiKey()) ||
+    (await getDefaultOpenAIKey());
 
   if (!apiKey) {
     throw new Error(
-      'OpenAI API key is required. Provide it in the X-OpenAI-API-Key header, store it in PostgreSQL, or set OPENAI_API_KEY environment variable.'
+      'OpenAI API key is required. Save it in Settings, provide it in the X-OpenAI-API-Key header, or set OPENAI_API_KEY environment variable.'
     );
   }
 
