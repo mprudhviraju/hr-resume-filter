@@ -39,9 +39,26 @@ Globals:
         OPENAI_MODEL: !Ref OpenAIModel
         USERS_TABLE_NAME: !Ref UsersTable
         RUNS_TABLE_NAME: !Ref RunsTable
+        UPLOAD_BUCKET: !Ref UploadBucket
         GOOGLE_CLIENT_ID: !Ref GoogleClientId
 
 Resources:
+  UploadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-uploads-${AWS::AccountId}'
+      LifecycleConfiguration:
+        Rules:
+          - Id: AutoDelete
+            Status: Enabled
+            ExpirationInDays: 1
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins: ['*']
+            AllowedMethods: [PUT]
+            AllowedHeaders: ['*']
+            MaxAge: 600
+
   JobsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -121,6 +138,8 @@ Resources:
             TableName: !Ref UsersTable
         - DynamoDBCrudPolicy:
             TableName: !Ref RunsTable
+        - S3CrudPolicy:
+            BucketName: !Ref UploadBucket
       Events:
         Health:
           Type: HttpApi
@@ -128,6 +147,12 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /api/health
             Method: GET
+        UploadUrls:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/upload-urls
+            Method: POST
         CreateJob:
           Type: HttpApi
           Properties:
@@ -212,6 +237,8 @@ Resources:
             TableName: !Ref UsersTable
         - DynamoDBCrudPolicy:
             TableName: !Ref RunsTable
+        - S3CrudPolicy:
+            BucketName: !Ref UploadBucket
       FunctionUrlConfig:
         AuthType: NONE
         InvokeMode: RESPONSE_STREAM
@@ -236,6 +263,9 @@ Outputs:
   HttpApiUrl:
     Description: API base URL — set as VITE_API_BASE_URL in Amplify
     Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  UploadBucketName:
+    Description: S3 bucket for resume uploads
+    Value: !Ref UploadBucket
   JobsTableName:
     Description: DynamoDB jobs table
     Value: !Ref JobsTable

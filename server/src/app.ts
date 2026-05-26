@@ -5,7 +5,9 @@ import express from 'express';
 dotenv.config();
 import cors from 'cors';
 import multer from 'multer';
-import { parseResumeFolder, parseUploadedFiles } from './services/resumeParser';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { parseResumeFolder, parseUploadedFiles, parseS3Files } from './services/resumeParser';
 import { pipeAnalysisStreamToWritable } from './services/analysisStream';
 import { getJobStore, jobExpiresAt } from './store/jobStore';
 import { getSettingsStore } from './store/settingsStore';
@@ -54,8 +56,46 @@ export function createApp(): express.Application {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  const s3 = new S3Client({});
+  const uploadBucket = process.env.UPLOAD_BUCKET?.trim() || '';
+
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', message: 'HR Resume Filter API is running' });
+  });
+
+  // --- S3 presigned upload URLs (bypasses Lambda 6MB payload limit) ---
+
+  app.post('/api/upload-urls', requireAuth, async (req, res) => {
+    try {
+      if (!uploadBucket) {
+        return res.status(501).json({ error: 'S3 uploads not configured' });
+      }
+      const { fileNames } = req.body as { fileNames: string[] };
+      if (!Array.isArray(fileNames) || fileNames.length === 0) {
+        return res.status(400).json({ error: 'fileNames array is required' });
+      }
+      if (fileNames.length > 50) {
+        return res.status(400).json({ error: 'Maximum 50 files per batch' });
+      }
+
+      const batchId = crypto.randomUUID();
+      const uploads = await Promise.all(
+        fileNames.map(async (name) => {
+          const key = `uploads/${batchId}/${name}`;
+          const url = await getSignedUrl(
+            s3,
+            new PutObjectCommand({ Bucket: uploadBucket, Key: key }),
+            { expiresIn: 600 },
+          );
+          return { fileName: name, key, uploadUrl: url };
+        }),
+      );
+
+      res.json({ batchId, uploads });
+    } catch (error) {
+      console.error('Error generating upload URLs:', error);
+      res.status(500).json({ error: 'Failed to generate upload URLs' });
+    }
   });
 
   // --- Settings: server-stored OpenAI API key (protected) ---
@@ -118,7 +158,7 @@ export function createApp(): express.Application {
     },
     async (req, res) => {
       try {
-        const { folderPath, criteria, apiKey: apiKeyFromBody } = req.body;
+        const { folderPath, criteria, apiKey: apiKeyFromBody, s3Keys } = req.body;
         const files = req.files as Express.Multer.File[] | undefined;
 
         const apiKey =
@@ -137,7 +177,9 @@ export function createApp(): express.Application {
         }
 
         let resumes;
-        if (files && files.length > 0) {
+        if (Array.isArray(s3Keys) && s3Keys.length > 0 && uploadBucket) {
+          resumes = await parseS3Files(s3, uploadBucket, s3Keys);
+        } else if (files && files.length > 0) {
           resumes = await parseUploadedFiles(files);
         } else if (folderPath?.trim()) {
           resumes = await parseResumeFolder(folderPath);

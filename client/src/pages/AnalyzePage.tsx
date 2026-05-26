@@ -111,29 +111,65 @@ function AnalyzePage() {
     setIsStatusPanelCollapsed(false);
 
     try {
-      const formData = new FormData();
+      let s3Keys: { key: string; fileName: string }[] | undefined;
 
-      uploadedFiles.forEach((file) => {
-        formData.append('resumes', file);
-      });
+      if (uploadedFiles.length > 0) {
+        // Step 1a: Get presigned upload URLs from server
+        const urlsRes = await fetch(resolveApiUrl('/api/upload-urls'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({
+            fileNames: uploadedFiles.map((f) => f.name),
+          }),
+        });
 
-      if (folderPath.trim()) {
-        formData.append('folderPath', folderPath);
+        if (urlsRes.ok) {
+          const { uploads } = (await urlsRes.json()) as {
+            batchId: string;
+            uploads: { fileName: string; key: string; uploadUrl: string }[];
+          };
+
+          // Step 1b: Upload each file directly to S3
+          await Promise.all(
+            uploads.map(async (u) => {
+              const file = uploadedFiles.find((f) => f.name === u.fileName);
+              if (!file) return;
+              await fetch(u.uploadUrl, { method: 'PUT', body: file });
+            }),
+          );
+
+          s3Keys = uploads.map((u) => ({ key: u.key, fileName: u.fileName }));
+        }
+        // If presigned URLs not available (local dev), fall back to multipart
       }
 
-      formData.append('criteria', criteria);
+      let response: Response;
 
-      if (apiKey) {
-        formData.append('apiKey', apiKey);
+      if (s3Keys) {
+        // S3-based flow (Lambda-safe, no payload size limits)
+        response = await fetch(resolveApiUrl('/api/analyze'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({
+            s3Keys,
+            criteria,
+            ...(apiKey ? { apiKey } : {}),
+          }),
+        });
+      } else {
+        // Multipart flow (local dev fallback)
+        const formData = new FormData();
+        uploadedFiles.forEach((file) => formData.append('resumes', file));
+        if (folderPath.trim()) formData.append('folderPath', folderPath);
+        formData.append('criteria', criteria);
+        if (apiKey) formData.append('apiKey', apiKey);
+
+        response = await fetch(resolveApiUrl('/api/analyze'), {
+          method: 'POST',
+          headers: authHeaders(),
+          body: formData,
+        });
       }
-
-      const apiUrl = resolveApiUrl('/api/analyze');
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: formData,
-      });
 
       if (!response.ok) {
         const bodyText = await response.text();

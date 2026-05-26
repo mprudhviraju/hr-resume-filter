@@ -2,6 +2,8 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
+import type { S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 
 export interface ParsedResume {
   fileName: string;
@@ -198,6 +200,60 @@ export async function parseUploadedFiles(files: Express.Multer.File[]): Promise<
     } catch (error) {
       console.error(`Error parsing ${file.originalname}:`, error);
       // Continue with other files even if one fails
+    }
+  }
+
+  return parsedResumes;
+}
+
+/**
+ * Parse resume files stored in S3 (used when files are uploaded via presigned URLs)
+ */
+export async function parseS3Files(
+  s3: S3Client,
+  bucket: string,
+  keys: { key: string; fileName: string }[],
+): Promise<ParsedResume[]> {
+  const parsedResumes: ParsedResume[] = [];
+
+  for (const { key, fileName } of keys) {
+    try {
+      if (!isResumeFile(fileName)) {
+        console.warn(`Skipping unsupported file: ${fileName}`);
+        continue;
+      }
+
+      const res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+      const chunks: Uint8Array[] = [];
+      for await (const chunk of res.Body as AsyncIterable<Uint8Array>) {
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks);
+
+      const ext = path.extname(fileName).toLowerCase();
+      let content: string;
+      let fileType: 'pdf' | 'doc' | 'docx';
+
+      if (ext === '.pdf') {
+        content = await parsePDFBuffer(buffer);
+        fileType = 'pdf';
+      } else if (ext === '.docx') {
+        content = await parseDOCXBuffer(buffer);
+        fileType = 'docx';
+      } else if (ext === '.doc') {
+        throw new Error('DOC file parsing requires additional tools. Please convert to DOCX or PDF.');
+      } else {
+        throw new Error(`Unsupported file format: ${ext}`);
+      }
+
+      parsedResumes.push({
+        fileName,
+        filePath: key,
+        content: content.trim(),
+        fileType,
+      });
+    } catch (error) {
+      console.error(`Error parsing S3 file ${fileName}:`, error);
     }
   }
 
