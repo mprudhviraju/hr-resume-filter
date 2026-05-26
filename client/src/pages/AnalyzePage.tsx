@@ -24,6 +24,7 @@ interface LastJobSummary {
 }
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+const STREAM_BASE_URL = (import.meta.env.VITE_STREAM_BASE_URL || '').replace(/\/+$/, '');
 const SHOW_SERVER_FOLDER_PATH =
   import.meta.env.VITE_ENABLE_FOLDER_PATH === 'true';
 
@@ -159,7 +160,10 @@ function AnalyzePage() {
       setCurrentJobId(jobId);
 
       // Step 2: open SSE stream for progress & final results
-      const streamUrl = resolveApiUrl(`/api/analyze/${jobId}/stream`);
+      // Use Lambda Function URL if configured, otherwise fall back to API proxy (local dev)
+      const streamUrl = STREAM_BASE_URL
+        ? `${STREAM_BASE_URL}/${jobId}`
+        : resolveApiUrl(`/api/analyze/${jobId}/stream`);
       const es = new EventSource(streamUrl);
       eventSourceRef.current = es;
 

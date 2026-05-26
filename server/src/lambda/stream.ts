@@ -30,7 +30,8 @@ declare const awslambda: {
 function getJobIdFromEvent(event: APIGatewayProxyEventV2): string | undefined {
   return (
     event.pathParameters?.jobId ??
-    event.rawPath?.match(/\/api\/analyze\/([^/]+)\/stream/)?.[1]
+    event.rawPath?.match(/\/api\/analyze\/([^/]+)\/stream/)?.[1] ??
+    event.rawPath?.match(/^\/([0-9a-f-]{36})$/)?.[1]
   );
 }
 

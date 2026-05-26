@@ -2,6 +2,11 @@ import OpenAI from 'openai';
 import { ParsedResume } from './resumeParser';
 import { getDefaultOpenAIKey } from '../config/openaiKeyStore';
 
+/** Read at call time so server/.env is loaded before first request (`dotenv` runs after imports in index.ts). */
+function resolveChatModel(): string {
+  return process.env.OPENAI_MODEL?.trim() || 'gpt-4o';
+}
+
 /**
  * Get OpenAI client instance (lazy initialization).
  * Priority: explicit API key from request > PostgreSQL-stored key > environment variable.
@@ -86,7 +91,7 @@ Respond in JSON format:
   try {
     const openai = await getOpenAIClient(apiKey);
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: resolveChatModel(),
       messages: [
         {
           role: 'system',
@@ -212,7 +217,7 @@ Write in a professional, executive-friendly tone.`;
   try {
     const openai = await getOpenAIClient(apiKey);
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: resolveChatModel(),
       messages: [
         {
           role: 'system',

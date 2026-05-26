@@ -23,7 +23,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: nodejs20.x
+    Runtime: nodejs22.x
     Architectures:
       - x86_64
     Environment:
@@ -110,13 +110,17 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref JobsTable
-      Events:
-        StreamJob:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref HttpApi
-            Path: /api/analyze/{jobId}/stream
-            Method: GET
+      FunctionUrlConfig:
+        AuthType: NONE
+        InvokeMode: RESPONSE_STREAM
+        Cors:
+          AllowOrigins:
+            - '*'
+          AllowMethods:
+            - GET
+          AllowHeaders:
+            - Content-Type
+          MaxAge: 600
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -139,3 +143,6 @@ Outputs:
   StreamFunctionArn:
     Description: SSE stream Lambda ARN
     Value: !GetAtt StreamFunction.Arn
+  StreamFunctionUrl:
+    Description: Function URL for SSE streaming
+    Value: !GetAtt StreamFunctionUrl.FunctionUrl
