@@ -4,6 +4,7 @@ build/
 .env
 .env.local
 server/.env
+server/samconfig.toml
 client/.env
 .DS_Store
 *.log

@@ -18,8 +18,8 @@ Parameters:
       Leave empty if the client always supplies a key.
   OpenAIModel:
     Type: String
-    Default: ''
-    Description: Optional OpenAI model id (default gpt-4o when empty)
+    Default: 'gpt-4o'
+    Description: OpenAI model id (default gpt-4o)
   GoogleClientId:
     Type: String
     Default: ''
