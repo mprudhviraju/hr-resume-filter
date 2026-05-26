@@ -12,6 +12,7 @@ export interface JobRecord {
   resumes: ParsedResume[];
   criteria: string;
   apiKey?: string;
+  userEmail?: string;
   createdAt: number;
   expiresAt: number;
 }

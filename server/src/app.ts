@@ -10,6 +10,7 @@ import { pipeAnalysisStreamToWritable } from './services/analysisStream';
 import { getJobStore, jobExpiresAt } from './store/jobStore';
 import { getSettingsStore } from './store/settingsStore';
 import { getUserStore } from './store/userStore';
+import { getRunStore } from './store/runStore';
 import { isOriginAllowed, parseAllowedOrigins } from './utils/cors';
 import { requireAuth, requireAdmin, type AuthenticatedRequest } from './middleware/auth';
 
@@ -154,11 +155,13 @@ export function createApp(): express.Application {
 
         const jobId = crypto.randomUUID();
         const createdAt = Date.now();
+        const authReq = req as AuthenticatedRequest;
         await getJobStore().set({
           jobId,
           resumes,
           criteria: criteria.trim(),
           apiKey,
+          userEmail: authReq.user?.email,
           createdAt,
           expiresAt: jobExpiresAt(createdAt),
         });
@@ -194,6 +197,36 @@ export function createApp(): express.Application {
       await jobStore.delete(jobId);
       res.end();
     });
+  });
+
+  // --- Runs: per-user analysis history (last 30 days) ---
+
+  app.get('/api/runs', requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 50, 100);
+      const runs = await getRunStore().listByUser(req.user!.email, limit);
+      res.json({ runs });
+    } catch (error) {
+      console.error('Error listing runs:', error);
+      res.status(500).json({ error: 'Failed to list runs' });
+    }
+  });
+
+  app.get('/api/runs/:createdAt', requireAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const createdAt = Number(req.params.createdAt);
+      if (!createdAt || Number.isNaN(createdAt)) {
+        return res.status(400).json({ error: 'Invalid timestamp' });
+      }
+      const run = await getRunStore().get(req.user!.email, createdAt);
+      if (!run) {
+        return res.status(404).json({ error: 'Run not found' });
+      }
+      res.json({ run });
+    } catch (error) {
+      console.error('Error fetching run:', error);
+      res.status(500).json({ error: 'Failed to fetch run' });
+    }
   });
 
   // --- Auth: verify Google token + check allowed users ---

@@ -38,6 +38,7 @@ Globals:
         OPENAI_API_KEY: !Ref OpenAIApiKey
         OPENAI_MODEL: !Ref OpenAIModel
         USERS_TABLE_NAME: !Ref UsersTable
+        RUNS_TABLE_NAME: !Ref RunsTable
         GOOGLE_CLIENT_ID: !Ref GoogleClientId
 
 Resources:
@@ -67,6 +68,25 @@ Resources:
       KeySchema:
         - AttributeName: email
           KeyType: HASH
+
+  RunsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-runs'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userEmail
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: N
+      KeySchema:
+        - AttributeName: userEmail
+          KeyType: HASH
+        - AttributeName: createdAt
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
 
   HttpApi:
     Type: AWS::Serverless::HttpApi
@@ -99,6 +119,8 @@ Resources:
             TableName: !Ref JobsTable
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RunsTable
       Events:
         Health:
           Type: HttpApi
@@ -154,6 +176,18 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /api/users/{email}
             Method: DELETE
+        ListRuns:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/runs
+            Method: GET
+        GetRun:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /api/runs/{createdAt}
+            Method: GET
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
@@ -176,6 +210,8 @@ Resources:
             TableName: !Ref JobsTable
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RunsTable
       FunctionUrlConfig:
         AuthType: NONE
         InvokeMode: RESPONSE_STREAM
@@ -206,6 +242,9 @@ Outputs:
   UsersTableName:
     Description: DynamoDB allowed users table
     Value: !Ref UsersTable
+  RunsTableName:
+    Description: DynamoDB analysis runs table
+    Value: !Ref RunsTable
   ApiFunctionArn:
     Description: Create-job Lambda ARN
     Value: !GetAtt ApiFunction.Arn

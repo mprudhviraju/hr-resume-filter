@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AnalyzePage from './pages/AnalyzePage';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
+import HistoryPage from './pages/HistoryPage';
 import Settings from './components/Settings';
 import { Loader2 } from 'lucide-react';
 
@@ -43,6 +44,7 @@ function AppRoutes() {
       <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
       <Route path="/" element={<RequireAuth><AnalyzePage /></RequireAuth>} />
       <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+      <Route path="/history" element={<RequireAuth><HistoryPage /></RequireAuth>} />
       <Route path="/admin" element={<RequireAuth><AdminPage /></RequireAuth>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
