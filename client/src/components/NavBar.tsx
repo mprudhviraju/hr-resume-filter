@@ -28,7 +28,7 @@ export default function NavBar() {
   return (
     <nav className="sticky top-0 z-50">
       {/* Primary dark bar — branding + user only */}
-      <div style={{ backgroundColor: '#2b3544' }} className="text-white px-4 sm:px-6">
+      <div style={{ backgroundColor: '#374151' }} className="text-white px-4 sm:px-6">
         <div className="flex items-center" style={{ height: '44px' }}>
           {/* Logo + app name */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
@@ -52,7 +52,7 @@ export default function NavBar() {
                     height: 24,
                     fontSize: '0.625rem',
                     backgroundColor: 'var(--color-warning-500)',
-                    color: '#2b3544',
+                    color: '#374151',
                   }}
                 >
                   {(user.name || user.email).charAt(0).toUpperCase()}

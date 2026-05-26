@@ -9,16 +9,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-subtle)' }}>
-      {/* Top bar */}
-      <div className="flex items-center px-6" style={{ backgroundColor: '#2b3544', height: '44px' }}>
-        <div className="rounded flex items-center justify-center text-white text-xs font-extrabold" style={{ width: 28, height: 28, backgroundColor: 'var(--color-ocean-600)' }}>
-          M
-        </div>
-        <span className="ml-3 text-sm text-gray-300 font-medium">HR Resume Filter</span>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: 'var(--bg-subtle)' }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
           <h1 className="text-xl font-bold text-gray-800">
@@ -75,7 +66,6 @@ export default function LoginPage() {
             Contact your administrator if you need access.
           </p>
         </div>
-      </div>
       </div>
     </div>
   );
