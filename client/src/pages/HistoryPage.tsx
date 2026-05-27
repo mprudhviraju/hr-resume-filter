@@ -224,7 +224,14 @@ export default function HistoryPage() {
                     {runByLabel(selectedRun)}
                   </span>
                 </div>
-                <p className="text-sm text-gray-700">{selectedRun.criteria}</p>
+                <div className="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+                  <div
+                    className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed"
+                    style={{ wordBreak: 'break-word' }}
+                  >
+                    {selectedRun.criteria}
+                  </div>
+                </div>
               </div>
               <div className="flex gap-3 text-center shrink-0 items-start">
                 <div className="bg-emerald-50 border border-emerald-100 rounded px-3 py-1.5">
