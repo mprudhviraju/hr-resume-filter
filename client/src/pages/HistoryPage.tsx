@@ -68,6 +68,22 @@ function runByLabel(run: RunSummary): string {
   return run.userName?.trim() || run.userEmail;
 }
 
+async function errorFromResponse(res: Response, fallback: string): Promise<Error> {
+  const raw = await res.text().catch(() => '');
+  const trimmed = raw.trim().slice(0, 800);
+  try {
+    const parsed = trimmed ? (JSON.parse(trimmed) as { error?: string; message?: string }) : {};
+    const msg = parsed.message || parsed.error;
+    if (msg) return new Error(`${fallback}: ${msg} (${res.status})`);
+  } catch {
+    // ignore JSON parse errors
+  }
+  if (trimmed && !trimmed.startsWith('<')) {
+    return new Error(`${fallback}: ${trimmed} (${res.status})`);
+  }
+  return new Error(`${fallback} (${res.status} ${res.statusText})`);
+}
+
 const PAGE_SIZE = 15;
 
 export default function HistoryPage() {
@@ -90,7 +106,7 @@ export default function HistoryPage() {
       const res = await fetch(apiUrl('/api/runs?limit=100'), {
         headers: authHeaders(),
       });
-      if (!res.ok) throw new Error('Failed to load history');
+      if (!res.ok) throw await errorFromResponse(res, 'Failed to load history');
       const data = (await res.json()) as { runs: RunSummary[] };
       setRuns(data.runs.sort((a, b) => b.createdAt - a.createdAt));
     } catch (err: any) {
@@ -120,7 +136,7 @@ export default function HistoryPage() {
       const res = await fetch(runDetailUrl(run), {
         headers: authHeaders(),
       });
-      if (!res.ok) throw new Error('Failed to load run details');
+      if (!res.ok) throw await errorFromResponse(res, 'Failed to load run details');
       const data = (await res.json()) as { run: RunDetail };
       setSelectedRun(data.run);
     } catch (err: any) {
@@ -151,8 +167,7 @@ export default function HistoryPage() {
         { method: 'DELETE', headers: authHeaders() },
       );
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as { error?: string }).error || 'Failed to delete run');
+        throw await errorFromResponse(res, 'Failed to delete run');
       }
       if (selectedRun?.createdAt === run.createdAt && selectedRun.userEmail === run.userEmail) {
         setSelectedRun(null);
