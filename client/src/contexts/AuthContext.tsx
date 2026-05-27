@@ -3,6 +3,7 @@ import { CredentialResponse } from '@react-oauth/google';
 
 const AUTH_TOKEN_KEY = 'google_id_token';
 const AUTH_USER_KEY = 'auth_user';
+const AUTH_LOGIN_MESSAGE_KEY = 'auth_login_message';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 
@@ -25,6 +26,8 @@ interface AuthContextValue {
   login: (credentialResponse: CredentialResponse) => Promise<void>;
   logout: () => void;
   authHeaders: () => Record<string, string>;
+  /** Fetch that auto-redirects to login on 401 */
+  authFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -37,6 +40,16 @@ export function useAuth(): AuthContextValue {
 
 export function getStoredToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function popLoginMessage(): string | null {
+  try {
+    const msg = sessionStorage.getItem(AUTH_LOGIN_MESSAGE_KEY);
+    if (msg) sessionStorage.removeItem(AUTH_LOGIN_MESSAGE_KEY);
+    return msg;
+  } catch {
+    return null;
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -58,6 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(AUTH_USER_KEY);
   }, []);
 
+  const redirectToLogin = useCallback((message?: string) => {
+    try {
+      if (message) sessionStorage.setItem(AUTH_LOGIN_MESSAGE_KEY, message);
+    } catch {
+      // ignore storage errors
+    }
+    // Force a full navigation so any stale app state is cleared.
+    window.location.assign('/login');
+  }, []);
+
   const verifyToken = useCallback(async (idToken: string): Promise<AuthUser> => {
     const res = await fetch(apiUrl('/api/auth/verify'), {
       method: 'POST',
@@ -69,11 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(
+      const err = new Error(
         (body as { message?: string; error?: string }).message ||
         (body as { error?: string }).error ||
         `Verification failed (${res.status})`,
       );
+      (err as any).status = res.status;
+      throw err;
     }
 
     const data = (await res.json()) as { user: AuthUser };
@@ -91,8 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(u);
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(u));
       })
-      .catch(() => {
+      .catch((err) => {
         clearAuth();
+        // Most common case: token expired / invalid
+        const status = (err as any)?.status;
+        if (status === 401) {
+          redirectToLogin('Your session expired. Please sign in again.');
+        }
       })
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -119,6 +149,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, [token]);
 
+  const authFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const headers = new Headers(init?.headers || {});
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    const res = await fetch(input, { ...init, headers });
+    if (res.status === 401) {
+      clearAuth();
+      redirectToLogin('Your session expired. Please sign in again.');
+    }
+    return res;
+  }, [token, clearAuth, redirectToLogin]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -130,6 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         logout,
         authHeaders,
+        authFetch,
       }}
     >
       {children}
