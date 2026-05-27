@@ -12,7 +12,8 @@ import { pipeAnalysisStreamToWritable } from './services/analysisStream';
 import { getJobStore, jobExpiresAt } from './store/jobStore';
 import { getSettingsStore } from './store/settingsStore';
 import { getUserStore } from './store/userStore';
-import { getRunStore } from './store/runStore';
+import { getRunStore, s3PrefixFromKeys } from './store/runStore';
+import { deleteS3Prefix } from './utils/s3Cleanup';
 import { isOriginAllowed, parseAllowedOrigins } from './utils/cors';
 import { requireAuth, requireAdmin, type AuthenticatedRequest } from './middleware/auth';
 
@@ -198,12 +199,15 @@ export function createApp(): express.Application {
         const jobId = crypto.randomUUID();
         const createdAt = Date.now();
         const authReq = req as AuthenticatedRequest;
+        const s3KeysList = Array.isArray(s3Keys) ? s3Keys : undefined;
         await getJobStore().set({
           jobId,
           resumes,
           criteria: criteria.trim(),
           apiKey,
           userEmail: authReq.user?.email,
+          userName: authReq.user?.name,
+          s3UploadPrefix: s3KeysList ? s3PrefixFromKeys(s3KeysList) : undefined,
           createdAt,
           expiresAt: jobExpiresAt(createdAt),
         });
@@ -246,7 +250,11 @@ export function createApp(): express.Application {
   app.get('/api/runs', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const limit = Math.min(Number(req.query.limit) || 50, 100);
-      const runs = await getRunStore().listByUser(req.user!.email, limit);
+      const store = getRunStore();
+      const runs =
+        req.user!.role === 'admin'
+          ? await store.listAll(limit)
+          : await store.listByUser(req.user!.email, limit);
       res.json({ runs });
     } catch (error) {
       console.error('Error listing runs:', error);
@@ -260,9 +268,18 @@ export function createApp(): express.Application {
       if (!createdAt || Number.isNaN(createdAt)) {
         return res.status(400).json({ error: 'Invalid timestamp' });
       }
-      const run = await getRunStore().get(req.user!.email, createdAt);
+
+      const ownerEmail =
+        req.user!.role === 'admin' && typeof req.query.userEmail === 'string'
+          ? req.query.userEmail
+          : req.user!.email;
+
+      const run = await getRunStore().get(ownerEmail, createdAt);
       if (!run) {
         return res.status(404).json({ error: 'Run not found' });
+      }
+      if (req.user!.role !== 'admin' && run.userEmail !== req.user!.email.toLowerCase()) {
+        return res.status(403).json({ error: 'Access denied' });
       }
       res.json({ run });
     } catch (error) {
@@ -270,6 +287,44 @@ export function createApp(): express.Application {
       res.status(500).json({ error: 'Failed to fetch run' });
     }
   });
+
+  app.delete(
+    '/api/runs/:createdAt',
+    requireAuth,
+    requireAdmin,
+    async (req: AuthenticatedRequest, res) => {
+      try {
+        const createdAt = Number(req.params.createdAt);
+        const userEmail = req.query.userEmail as string | undefined;
+        if (!createdAt || Number.isNaN(createdAt)) {
+          return res.status(400).json({ error: 'Invalid timestamp' });
+        }
+        if (!userEmail || !userEmail.includes('@')) {
+          return res.status(400).json({ error: 'userEmail query parameter is required' });
+        }
+
+        const store = getRunStore();
+        const run = await store.get(userEmail, createdAt);
+        if (!run) {
+          return res.status(404).json({ error: 'Run not found' });
+        }
+
+        if (run.s3UploadPrefix && uploadBucket) {
+          try {
+            await deleteS3Prefix(s3, uploadBucket, run.s3UploadPrefix);
+          } catch (s3Err) {
+            console.error('S3 cleanup failed (run will still be deleted):', s3Err);
+          }
+        }
+
+        await store.delete(userEmail, createdAt);
+        res.json({ success: true });
+      } catch (error) {
+        console.error('Error deleting run:', error);
+        res.status(500).json({ error: 'Failed to delete run' });
+      }
+    },
+  );
 
   // --- Auth: verify Google token + check allowed users ---
 

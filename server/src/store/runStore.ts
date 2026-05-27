@@ -4,12 +4,15 @@ import {
   PutCommand,
   QueryCommand,
   GetCommand,
+  DeleteCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 
 const RUN_TTL_DAYS = 30;
 
 export interface RunRecord {
   userEmail: string;
+  userName?: string;
   createdAt: number;
   runId: string;
   criteria: string;
@@ -18,11 +21,13 @@ export interface RunRecord {
   notShortlistedCount: number;
   durationMs: number;
   results: object;
+  s3UploadPrefix?: string;
   expiresAt: number;
 }
 
 export interface RunSummary {
   userEmail: string;
+  userName?: string;
   createdAt: number;
   runId: string;
   criteria: string;
@@ -30,12 +35,23 @@ export interface RunSummary {
   shortlistedCount: number;
   notShortlistedCount: number;
   durationMs: number;
+  s3UploadPrefix?: string;
 }
 
 export interface RunStore {
   save(run: Omit<RunRecord, 'expiresAt'>): Promise<void>;
   listByUser(email: string, limit?: number): Promise<RunSummary[]>;
+  listAll(limit?: number): Promise<RunSummary[]>;
   get(email: string, createdAt: number): Promise<RunRecord | null>;
+  delete(email: string, createdAt: number): Promise<boolean>;
+}
+
+const SUMMARY_FIELDS =
+  'userEmail, userName, createdAt, runId, criteria, totalResumes, shortlistedCount, notShortlistedCount, durationMs, s3UploadPrefix';
+
+function toSummary(run: RunRecord): RunSummary {
+  const { results: _, expiresAt: __, ...rest } = run;
+  return rest;
 }
 
 class InMemoryRunStore implements RunStore {
@@ -44,6 +60,7 @@ class InMemoryRunStore implements RunStore {
   async save(run: Omit<RunRecord, 'expiresAt'>): Promise<void> {
     this.runs.push({
       ...run,
+      userEmail: run.userEmail.toLowerCase(),
       expiresAt: Math.floor(run.createdAt / 1000) + RUN_TTL_DAYS * 86400,
     });
   }
@@ -54,7 +71,14 @@ class InMemoryRunStore implements RunStore {
       .filter((r) => r.userEmail === lowerEmail)
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, limit)
-      .map(({ results: _, expiresAt: __, ...rest }) => rest);
+      .map(toSummary);
+  }
+
+  async listAll(limit = 100): Promise<RunSummary[]> {
+    return [...this.runs]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit)
+      .map(toSummary);
   }
 
   async get(email: string, createdAt: number): Promise<RunRecord | null> {
@@ -63,6 +87,15 @@ class InMemoryRunStore implements RunStore {
         (r) => r.userEmail === email.toLowerCase() && r.createdAt === createdAt,
       ) ?? null
     );
+  }
+
+  async delete(email: string, createdAt: number): Promise<boolean> {
+    const idx = this.runs.findIndex(
+      (r) => r.userEmail === email.toLowerCase() && r.createdAt === createdAt,
+    );
+    if (idx === -1) return false;
+    this.runs.splice(idx, 1);
+    return true;
   }
 }
 
@@ -95,11 +128,22 @@ class DynamoDBRunStore implements RunStore {
         ExpressionAttributeValues: { ':email': email.toLowerCase() },
         ScanIndexForward: false,
         Limit: limit,
-        ProjectionExpression:
-          'userEmail, createdAt, runId, criteria, totalResumes, shortlistedCount, notShortlistedCount, durationMs',
+        ProjectionExpression: SUMMARY_FIELDS,
       }),
     );
     return (result.Items as RunSummary[] | undefined) ?? [];
+  }
+
+  async listAll(limit = 100): Promise<RunSummary[]> {
+    const result = await this.doc.send(
+      new ScanCommand({
+        TableName: this.tableName,
+        Limit: limit,
+        ProjectionExpression: SUMMARY_FIELDS,
+      }),
+    );
+    const items = (result.Items as RunSummary[] | undefined) ?? [];
+    return items.sort((a, b) => b.createdAt - a.createdAt);
   }
 
   async get(email: string, createdAt: number): Promise<RunRecord | null> {
@@ -110,6 +154,18 @@ class DynamoDBRunStore implements RunStore {
       }),
     );
     return (result.Item as RunRecord | undefined) ?? null;
+  }
+
+  async delete(email: string, createdAt: number): Promise<boolean> {
+    const existing = await this.get(email, createdAt);
+    if (!existing) return false;
+    await this.doc.send(
+      new DeleteCommand({
+        TableName: this.tableName,
+        Key: { userEmail: email.toLowerCase(), createdAt },
+      }),
+    );
+    return true;
   }
 }
 
@@ -123,4 +179,13 @@ export function getRunStore(): RunStore {
       : new InMemoryRunStore();
   }
   return storeInstance;
+}
+
+/** Extract S3 prefix for batch uploads (e.g. uploads/uuid/) from first key */
+export function s3PrefixFromKeys(keys: { key: string }[]): string | undefined {
+  const first = keys[0]?.key;
+  if (!first) return undefined;
+  const lastSlash = first.lastIndexOf('/');
+  if (lastSlash <= 0) return undefined;
+  return first.slice(0, lastSlash + 1);
 }

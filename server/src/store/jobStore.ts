@@ -13,6 +13,8 @@ export interface JobRecord {
   criteria: string;
   apiKey?: string;
   userEmail?: string;
+  userName?: string;
+  s3UploadPrefix?: string;
   createdAt: number;
   expiresAt: number;
 }

@@ -40,6 +40,7 @@ export async function runJobAnalysisStream(
       try {
         await getRunStore().save({
           userEmail: job.userEmail,
+          userName: job.userName,
           createdAt: job.createdAt,
           runId: job.jobId,
           criteria: job.criteria,
@@ -48,6 +49,7 @@ export async function runJobAnalysisStream(
           notShortlistedCount: typedResults.notShortlisted?.length ?? 0,
           durationMs: Date.now() - startMs,
           results,
+          s3UploadPrefix: job.s3UploadPrefix,
         });
       } catch (saveErr) {
         console.error('Failed to persist run record:', saveErr);
