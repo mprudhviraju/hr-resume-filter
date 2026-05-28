@@ -228,6 +228,40 @@ const CandidateRow: React.FC<CandidateRowProps> = ({ candidate, isShortlisted, e
               {/* Summary */}
               <p className="text-sm text-gray-600 leading-relaxed">{candidate.summary}</p>
 
+              {/* Evidence (AI tooling) */}
+              {candidate.aiToolingEvidence && (
+                <div className="rounded-md border border-gray-200 bg-white px-3 py-2">
+                  <h5 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                    AI tooling evidence
+                  </h5>
+                  <div className="text-xs text-gray-600">
+                    <div className="mb-1">
+                      <span className="font-semibold">Present:</span>{' '}
+                      {candidate.aiToolingEvidence.present ? 'Yes' : 'No (not found in resume)'}
+                    </div>
+                    {candidate.aiToolingEvidence.toolsMentioned?.length > 0 && (
+                      <div className="mb-1">
+                        <span className="font-semibold">Tools:</span>{' '}
+                        {candidate.aiToolingEvidence.toolsMentioned.join(', ')}
+                      </div>
+                    )}
+                    {candidate.aiToolingEvidence.evidenceQuotes?.length > 0 ? (
+                      <ul className="mt-1 space-y-0.5">
+                        {candidate.aiToolingEvidence.evidenceQuotes.slice(0, 4).map((q, idx) => (
+                          <li key={idx} className="text-[11px] text-gray-500 whitespace-pre-wrap">
+                            “{q}”
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-[11px] text-gray-500">
+                        No resume quotes provided.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Reasons */}
               <div>
                 <h5 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">

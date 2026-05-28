@@ -5,6 +5,16 @@ export interface CandidateAnalysis {
   reasons: string[];
   standoutFeatures: string[];
   summary: string;
+  requirementsCheck?: Array<{
+    requirement: string;
+    met: boolean;
+    evidenceQuotes: string[];
+  }>;
+  aiToolingEvidence?: {
+    present: boolean;
+    toolsMentioned: string[];
+    evidenceQuotes: string[];
+  };
   extractedInfo: {
     name?: string;
     email?: string;

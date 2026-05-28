@@ -36,6 +36,20 @@ export interface CandidateAnalysis {
   reasons: string[];
   standoutFeatures: string[];
   summary: string;
+  /**
+   * Evidence-first fields to prevent hallucinations.
+   * All quotes MUST be copied verbatim from the resume text.
+   */
+  requirementsCheck?: Array<{
+    requirement: string;
+    met: boolean;
+    evidenceQuotes: string[];
+  }>;
+  aiToolingEvidence?: {
+    present: boolean;
+    toolsMentioned: string[];
+    evidenceQuotes: string[];
+  };
   extractedInfo: {
     name?: string;
     email?: string;
@@ -60,7 +74,14 @@ async function analyzeSingleResume(
   criteria: string,
   apiKey?: string
 ): Promise<CandidateAnalysis> {
-  const prompt = `You are an expert HR recruiter analyzing resumes. 
+  const prompt = `You are an expert HR recruiter analyzing resumes.
+
+IMPORTANT RULES (NO HALLUCINATIONS):
+- You MUST ONLY use facts that are explicitly present in RESUME CONTENT.
+- Do NOT infer, assume, or generalize beyond the resume.
+- If a requirement (e.g. Cursor/Copilot/Claude Code / AI agents / slash commands) is not explicitly stated in the resume, mark it as NOT MET.
+- Any time you claim a tool/skill/experience is present, you MUST include at least 1 exact verbatim quote from the resume in evidenceQuotes.
+- If you cannot provide an exact quote, treat it as NOT PRESENT.
 
 RESUME CONTENT:
 ${resume.content}
@@ -75,6 +96,8 @@ Please analyze this resume and provide:
 4. Standout features that make this candidate exceptional (2-4 bullet points)
 5. A brief professional summary (2-3 sentences)
 6. Extract key information: name, email, phone, years of experience, education level, key skills
+7. A requirements checklist derived from the criteria, with explicit evidence quotes from the resume
+8. AI tooling evidence: whether the resume explicitly mentions Cursor / GitHub Copilot / Claude Code / AI agents / slash commands (with quotes)
 
 Respond in JSON format:
 {
@@ -83,6 +106,8 @@ Respond in JSON format:
   "reasons": string[],
   "standoutFeatures": string[],
   "summary": string,
+  "requirementsCheck": [{"requirement": string, "met": boolean, "evidenceQuotes": string[]}],
+  "aiToolingEvidence": {"present": boolean, "toolsMentioned": string[], "evidenceQuotes": string[]},
   "extractedInfo": {
     "name": string,
     "email": string,
@@ -198,11 +223,17 @@ async function generateOverallSummary(
 
   const shortlistedSummary = shortlisted
     .map(
-      (c) => `- ${c.fileName}: ${c.summary} (Match Score: ${c.matchScore}%)`
+      (c) =>
+        `- ${c.fileName}: ${c.summary} (Match Score: ${c.matchScore}%)\n` +
+        `  AI tooling evidence: ${c.aiToolingEvidence?.present ? `present (${(c.aiToolingEvidence.toolsMentioned || []).join(', ')})` : 'not found in resume'}`
     )
     .join('\n');
 
   const prompt = `You are an HR manager providing a high-level summary of shortlisted candidates.
+
+IMPORTANT:
+- Do not introduce any tools/skills that are not explicitly listed in the SHORTLISTED CANDIDATES section.
+- If AI tooling evidence is \"not found in resume\", do NOT claim the candidate has AI tooling experience.
 
 FILTERING CRITERIA:
 ${criteria}
